@@ -1,0 +1,24 @@
+{
+  "author": "Christopher Giffard <christopher.giffard@cgiffard.com>",
+  "name": "Duckdown",
+  "description": "Simple, lightweight Markdown-like language with extensible grammar.",
+  "version": "0.0.1",
+  "homepage": "http://www.github.com/cgiffard/Duckdown.git",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/cgiffard/Duckdown.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "./test.js"
+  },
+  "engines": {
+    "node": ">=0.6.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "mocha": "~1.3.0"
+  },
+  "optionalDependencies": {},
+  "public": false
+}

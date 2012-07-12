@@ -10,14 +10,15 @@
   },
   "main": "index.js",
   "scripts": {
-    "test": "./test.js"
+    "test": "mocha"
   },
   "engines": {
-    "node": ">=0.6.0"
+    "node": ">= 0.6.x < 0.9.0"
   },
   "dependencies": {},
   "devDependencies": {
-    "mocha": "~1.3.0"
+    "mocha": "1.3.x",
+    "jshint": "~0.7.x"
   },
   "optionalDependencies": {},
   "public": false

@@ -43,7 +43,8 @@
 		for (var charIndex = 0; charIndex < chunkLength; charIndex ++) {
 			if (input.charAt(charIndex).match(Grammar.wordCharacters)) {
 				this.tokenBuffer += input.charAt(charIndex);
-			} else {
+				
+			} else if (this.tokenBuffer.length) {
 				this.tokens.push(this.tokenBuffer);
 				this.tokenBuffer = "";
 			}
@@ -55,8 +56,9 @@
 	};
 	
 	Duckdown.prototype.parse = function(input) {
+		var tokens = this.tokenise(input);
 		
-		return this.parserAST;
+		return tokens.slice(1) || this.parserAST;
 	};
 	
 	Duckdown.prototype.compile = function() {

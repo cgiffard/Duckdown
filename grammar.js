@@ -7,7 +7,7 @@
 	
 	// Word characters
 	// Used for defining token boundries and splitting tokens from 
-	Grammar.wordCharacters = /[a-z0-9]/ig;
+	Grammar.wordCharacters = /[a-z0-9 ]/ig;
 	
 	// Parser states
 	// Used for storing all the possible simultaneous states the parser could have

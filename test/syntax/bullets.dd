@@ -1,0 +1,37 @@
+* list 1
+* list 2
+* list 3
+
+1. list 1
+2. list 2
+3. list 3
+
+a. list a
+b. list b
+c. list c
+
+i. list i
+ii. list ii
+iii. list iii
+iv. list iv
+v. list v
+vi. list vi
+vii. list vii
+viii. list viii
+ix. list ix
+x. list x
+xi. list xi
+
+1. list 1
+* list c-c-c-combo breaker
+
+* list 1
+1. list c-c-c-combo breaker
+
+i. list i
+  a. list a
+    z. list 1
+    1. list 1
+    v. list v
+      9999. list 9999
+    a. list a

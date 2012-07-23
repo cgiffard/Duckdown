@@ -9,7 +9,10 @@ describe("Duckdown API Surface",function() {
 		"tokenise",
 		"parse",
 		"compile",
-		"parseToken"
+		"parseToken",
+		"registerFeather",
+		"unregisterFeather",
+		"hasParseState"
 	];
 	
 	
@@ -31,7 +34,18 @@ describe("Duckdown API Surface",function() {
 	it("should not define any other methods",function() {
 		var Duckdown = new (require("../"))();
 		
+		var methodsMatch = true, property,
+			arrayReducer = function(prev,cur) { return prev || property === cur; };
 		
+		for (property in Duckdown) {
+			if (!Duckdown.hasOwnProperty(property)) {
+				if (!surfaceMethods.reduce(arrayReducer,false)) {
+					methodsMatch = false;
+				}
+			}
+		}
+		
+		methodsMatch.should.be.true;
 	});
 	
 });
@@ -71,7 +85,7 @@ describe("Tokenisation",function() {
 		// Simple tokenising check
 		var simpleTokenisation = Duckdown.tokenise("*Bold Text*");
 		simpleTokenisation.should.be.an("array");
-		simpleTokenisation.should.have.length(1);
+		simpleTokenisation.should.have.length(3);
 		
 	})
 	
@@ -83,12 +97,14 @@ describe("Parsing",function() {
 	it("should return an appropriate array AST structure",function() {
 		
 		// Empty compilation check
-		Duckdown.parse("").should.be.an("array");
-		Duckdown.parse("").should.be.empty;
+		var AST = Duckdown.parse("");
+		AST.should.be.an("array");
+		AST.should.be.empty;
 		
 		// Simple compilation check
-		Duckdown.parse("*Bold Text*").should.be.an("array");
-		Duckdown.parse("*Bold Text*").should.have.length(1);
+		AST = Duckdown.parse("*Bold Text*")
+		AST.should.be.an("array");
+		AST.should.have.length(1);
 		
 	});
 	

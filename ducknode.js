@@ -3,7 +3,14 @@
 
 (function(glob) {
 	
-	var DuckdownNode = function() {};
+	var DuckdownNode = function(state) {
+		this.state		= state && typeof state === "string" ? state : "NODE_TEXT";
+		this.stateStack	= [];
+		this.depth		= 0;
+		this.children	= [];
+		this.parent		= null;
+		this.wrapper	= true;
+	};
 	
 	
 	// Now work out how to export it properly...

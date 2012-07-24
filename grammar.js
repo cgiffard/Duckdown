@@ -1,5 +1,5 @@
 // Duckdown Grammar Definitions
-/*globals require:true module:true define:true*/
+/*globals require:true module:true define:true console:true */
 
 (function(glob) {
 	
@@ -17,11 +17,15 @@
 	//
 	Grammar.tokenMappings = {
 		"\n": {
-			
+			// This node implicitly wraps.
+			"wrapper"			: true,
+			// Should we swallow tokens for this mapping? Or should they be made available for further processing?
+			"swallowTokens"		: false
 		},
 		// XML/HTML Entity...
 		"&": {
 			// Determines whether this is a one-off token, or whether it wraps other elements.
+			// This defaults to false, for safety.
 			"wrapper"			: false,
 			// Remove the associated state from the state stack if the following condition is met for the token.
 			"exit"				: /([^#a-z0-9]|;)/i,
@@ -87,8 +91,44 @@
 		},
 		"TEXT_STRONG": {},
 		"SPECIAL_FEATHER": {
-			"process": function() {
+			
+			// Function for processing feathers!
+			// Language specific, so not part of parser core.
+			// Function is called with the parser object as its context,
+			// so 'this' points to the parser object.
+			
+			"process": function(featherNode) {
+				console.log("feather genus process called!");
 				
+				// If there's no children, there's nothing to go on. Die.
+				if (!featherNode.children.length) return;
+				
+				// Feathers treat tokens differently.
+				// Join and re-split tokens by whitespace...
+				var featherTokens = featherNode.children.join("").split(/\s+/);
+				
+				// Storage for feather name
+				var featherName = featherTokens.shift().replace(/\s+/ig,"");
+				
+				// Storage for parameters passed to feather function
+				var parameterHash = {};
+				
+				// If we couldn't get a feather name, there's no point continuing.
+				if (!featherName.length) return;
+				
+				// And if the feather name exists and is a function...
+				if (this.feathers[featherName] && this.feathers[featherName] instanceof Function) {
+					
+					// get the feather params
+					
+					// call the feather
+					var returnedData = this.feathers[featherName].call();
+					
+					console.log(returnedData);
+				}
+				
+				// Or just return.
+				return;
 			}
 		}
 	};

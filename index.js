@@ -12,7 +12,8 @@
 	
 	"use strict";
 	
-	var Grammar = require("./grammar.js");
+	var Grammar			= require("./grammar.js"),
+		DuckdownNode	= require("./ducknode.js");
 	
 	// Tokeniser State Constants
 	var TOKENISER_STATE_UNINITIALISED	= 0,
@@ -37,6 +38,8 @@
 		this.parserStates	= [];
 		this.parserAST		= [];
 		this.parseBuffer	= [];
+		this.currentNode	= null;
+		this.nodeDepth		= 0;
 		
 		// Tokeniser state
 		this.characterIndex	= 0;
@@ -93,20 +96,25 @@
 			this.characterIndex = charIndex;
 			this.prevChar = this.curChar;
 		}
-		//console.log(this.tokens);
+		//// console.log(this.tokens);
 		return this.tokens;
 	};
 	
 	Duckdown.prototype.parse = function(input) {
+		// console.log(input);
 		if (input && typeof input === "string") this.tokenise(input);
 		
 		for (; this.tokenPosition < this.tokens.length; this.tokenPosition ++) {
 			this.parseToken(this,null);
 		}
 		
+		// console.log("Parse buffer at end of parsing process.");
+		// console.log(this.parseBuffer);
+		
+		// console.log(this.parserAST);
 		return this.parserAST;
 	};
-	
+	function i(depth) { var str = ""; while (str.length < depth) {str+="\t";}return str;}
 	Duckdown.prototype.parseToken = function(state, input) {
 		var currentState, newState, tokenGenus, stateGenus;
 		
@@ -119,7 +127,53 @@
 		
 		state.currentToken = state.tokens[state.tokenPosition];
 		
-		//console.log("Processing token ",state.currentToken);
+		// Helper function to determine whether wrapping is permitted...
+		function weCanWrap() {
+			// If there's no current states in the stack, we're permitted to wrap. Just do it.
+			if (!state.parserStates.length) return true;
+			
+			// Only look at the most recent state (last on the stack.)
+			// If earlier states prevented wrapping, newer states would not have been added.
+			var tmpState = state.parserStates[state.parserStates.length-1];
+			
+			// Find the token info...
+			var tokenInfo = lookupTokenForState(tmpState);
+			
+			// We found the token! Return its specific wrapper info.
+			if (tokenInfo) return tokenInfo.wrapper;
+			
+			// We couldn't find the wrapping information. Default to false.
+			return false;
+		}
+		
+		// Helper function to do a reverse-lookup to find token info from a state name.
+		// This function caches the lookup against the state object.
+		function lookupTokenForState(stateName) {
+			// If the state we've been requested to locate the token for doesn't even exist,
+			// we've got no choice but to bail out.
+			if (!Grammar.stateList[stateName]) return false;
+			
+			// If we've already cached the link, return that instead.
+			if (!!Grammar.stateList[stateName].tokenGenus) return Grammar.stateList[stateName].tokenGenus;
+			
+			// Uncached? Commence a manual lookup.
+			for (var token in Grammar.tokenMappings) {
+				if (Grammar.tokenMappings.hasOwnProperty(token) &&
+					Grammar.tokenMappings[token].state === currentState) {
+					
+					// Cache our discovery...
+					Grammar.stateList[stateName].tokenGenus = Grammar.tokenMappings[token];
+					
+					// We found it. Return.
+					return Grammar.tokenMappings[token];
+				}
+			}
+			
+			// We couldn't locate the token. Whoops.
+			return false;
+		}
+		
+		// console.log(i(state.nodeDepth)+"Processing token ",state.currentToken);
 		// Search our current state list for exit conditions
 		for (var stateIndex = state.parserStates.length - 1; stateIndex >= 0; stateIndex--) {
 			// Get genus information
@@ -129,24 +183,41 @@
 			// Check to see we haven't already cached exit condition for reverse lookup
 			// If not, loop until we locate it, and cache info.
 			if (!stateGenus.exitCondition) {
-				for (var token in Grammar.tokenMappings) {
-					if (Grammar.tokenMappings.hasOwnProperty(token) &&
-						Grammar.tokenMappings[token].state === currentState) {
-						
-						stateGenus.exitCondition = Grammar.tokenMappings[token].exit;
-						stateGenus.tokenGenus = Grammar.tokenMappings[token];
-						
-						break;
-					}
+				var tmpTokenGenus = lookupTokenForState(currentState);
+				
+				if (tmpTokenGenus) {
+					stateGenus.exitCondition = tmpTokenGenus.exit;
 				}
 			}
 			
 			if (stateGenus.exitCondition && stateGenus.exitCondition.exec(state.currentToken)) {
-				console.log("met exit condition for a current state");
-				// First of all, process our now-closed token.
-				// Are we
+				// console.log(i(state.nodeDepth)+"met exit condition for a current state");
 				
-				// swallow token components that matched
+				// Add the current parse buffer to its child list.
+				state.currentNode.children.push.apply(state.currentNode.children,state.parseBuffer);
+				
+				// And clear the parse buffer...
+				state.parseBuffer = [];
+				
+				// Does our state genus define a processing function?
+				if (stateGenus.process && stateGenus.process instanceof Function) {
+					stateGenus.process.call(state,state.currentNode);
+				}
+				
+				// Set our new current node to the parent node of the previously current node
+				state.currentNode = state.currentNode.parentNode;
+				
+				// Decrement node depth
+				state.nodeDepth --;
+				
+				// Finally, do we swallow any token components that match?
+				// Check the state genus and act accordingly. If we destroy the token components, 
+				// we just return. Otherwise, allow processing to continue based on the current token.
+				
+				//aaaactually, we remove the exit condition info from the token info.
+				if (stateGenus.tokenGenus.swallowTokens !== false) {
+					state.currentToken = state.currentToken.replace(stateGenus.exitCondition,"");
+				}
 			}
 		}
 		
@@ -154,40 +225,74 @@
 			// Get genus information
 			tokenGenus	= Grammar.tokenMappings[state.currentToken];
 			newState	= tokenGenus.state;
-			stateGenus	= Grammar.stateList[currentState];
+			stateGenus	= Grammar.stateList[tokenGenus.state];
 			
 			// search our current state list for this genus state
 			if (state.hasParseState(tokenGenus.state)) {
-				console.log("We're already subscribed to this state.");
+				// console.log(i(state.nodeDepth)+"We're already subscribed to this state.");
 			} else {
-				console.log("we're not subscribed to this state.");
 				
-				state.addParseState(tokenGenus.state);
-				
-				console.log("state list now looks like",state.parserStates);
+				// If the current state allows wrapping (ie we can nest something inside it...)
+				if (weCanWrap()) {
+					// console.log(i(state.nodeDepth)+"we're not subscribed to this state.");
+					
+					state.addParseState(tokenGenus.state);
+					
+					// console.log(i(state.nodeDepth)+"state list now looks like",state.parserStates);
+					
+					// Make a new node that represents this state
+					var tmpDuckNode = new DuckdownNode(tokenGenus.state);
+					
+					// Save in all the relevant information...
+					tmpDuckNode.stateStack	= state.parserStates.slice(0);
+					tmpDuckNode.depth		= state.nodeDepth;
+					tmpDuckNode.parent		= state.currentNode;
+					tmpDuckNode.wrapper		= tokenGenus.wrapper;
+					
+					// console.log(tmpDuckNode);
+					
+					// We're not the root element. Flush the current parse-buffer to the node children.
+					// Add our new temporary node as a child of the previous current node.
+					if (!!state.currentNode) {
+						state.currentNode.children.push.apply(state.currentNode.children,state.parseBuffer);
+						state.currentNode.children.push(tmpDuckNode);
+						
+					// We are the root element. Flush the current parse-buffer to the AST root.
+					// Add the temporary node as an AST child.
+					} else {
+						state.parserAST.push.apply(state.parserAST,state.parseBuffer);
+						state.parserAST.push(tmpDuckNode);
+					}
+					
+					// Clear parse buffer.
+					state.parseBuffer = [];
+					
+					// Set current node to our temporary node.
+					state.currentNode = tmpDuckNode;
+					
+					state.nodeDepth ++;
+					
+				// Oh dear, we're not allowed to wrap.
+				// What we do instead is add all the subsequent tokens (until the current state has an exit condition met)
+				// to the parse buffer. These are saved as node children on state exit.
+				} else {
+					// console.log(i(state.nodeDepth)+"Oh no. Not allowed to wrap!");
+					state.parseBuffer.push(state.currentToken);
+				}
 			}
-			
-			
-			// if the state already exists, consult genus model
-			// if model allows nesting, nest
-			// if model says close, close.
-			
-			
-			
-			console.log("Mapping found for this token.");
-			console.log(tokenGenus);
-			
+		
+		// We didn't find any mappings for this token.
 		} else {
-			console.log("No mappings for this token",state.currentToken);
 			
-			state.parseBuffer.push(state.currentToken);
-			
-			console.log(state.parseBuffer);
+			// Push to parse buffer (if there's anything in the current token at all!)
+			if (state.currentToken.length) {
+				state.parseBuffer.push(state.currentToken);
+			}
 		}
 	};
 	
 	Duckdown.prototype.compile = function(format) {
-		// compile from duckdown intermediate format to the destinatino text format.
+		// compile from duckdown intermediate format to the destination text format.
 	};
 	
 	

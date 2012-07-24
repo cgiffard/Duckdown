@@ -98,14 +98,13 @@
 			// so 'this' points to the parser object.
 			
 			"process": function(featherNode) {
-				console.log("feather genus process called!");
 				
 				// If there's no children, there's nothing to go on. Die.
 				if (!featherNode.children.length) return;
 				
 				// Feathers treat tokens differently.
 				// Join and re-split tokens by whitespace...
-				var featherTokens = featherNode.children.join("").split(/\s+/);
+				var featherTokens = featherNode.children.join("").split(/\s+/ig);
 				
 				// Storage for feather name
 				var featherName = featherTokens.shift().replace(/\s+/ig,"");
@@ -119,12 +118,56 @@
 				// And if the feather name exists and is a function...
 				if (this.feathers[featherName] && this.feathers[featherName] instanceof Function) {
 					
-					// get the feather params
+					// Parse the feather parameters
+					var featherState = 0; // Waiting for parameter name
+					var parameterName = [],
+						parameterValue = [];
 					
-					// call the feather
-					var returnedData = this.feathers[featherName].call();
+					for (var tokenIndex = 0; tokenIndex < featherTokens.length; tokenIndex++) {
+						var curToken = featherTokens[tokenIndex];
+						
+						if (featherState === 0) {
+							if (!curToken.match(/\:/)) {
+								parameterName.push(curToken);
+							} else {
+								curToken = curToken.split(/[:]+/);
+								
+								parameterName.push(curToken.shift());
+								parameterValue = parameterValue.concat(curToken);
+								
+								featherState = 1;
+							}
+						} else {
+							if (!curToken.match(/\:/)) {
+								parameterValue.push(curToken);
+							} else {
+								// We've got a split token on our hands. Change state and
+								// rewind by one token for re-processing!
+								
+								featherState = 0;
+								tokenIndex --;
+								
+								// But first, save our current parameter info out and clear buffers!
+								parameterHash[parameterName.join(" ")] = parameterValue.join(" ");
+								parameterName = [];
+								parameterValue = [];
+							}
+						}
+					}
 					
-					console.log(returnedData);
+					// Clean up amd store final parameter
+					if (parameterName.length || parameterValue.length) {
+						parameterHash[parameterName.join(" ")] = parameterValue.join(" ");
+					}
+					
+					// Call the feather, get the result!
+					var returnedData = this.feathers[featherName](parameterHash);
+					
+					// Mark as compiled!
+					featherNode.compiled = true;
+					
+					// Replace children with result from feather function
+					featherNode.children = [returnedData];
 				}
 				
 				// Or just return.

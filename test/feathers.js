@@ -88,12 +88,27 @@ describe("Feathers API",function() {
 		var parametersCorrect = false;
 		
 		Duckdown.registerFeather("testingfeather",function(input){
-			if (input.a === "123" && input.b === "321" && input.c === "231") {
+			if (input && input.a === "123" && input.b === "321" && input.c === "231") {
 				parametersCorrect = true;
 			}
 		});
 		
 		Duckdown.parse("<testingfeather a:123 b:321 c:231>");
+		
+		parametersCorrect.should.be.true;
+	});
+	
+	it("should deal neatly with spaces when parsing parameters",function() {
+		var Duckdown = new (require("../"))();
+		var parametersCorrect = false;
+		
+		Duckdown.registerFeather("testingfeather",function(input){
+			if (input && input.a === "123 123 123 123" && input.b === "321 321 321 321" && input.c === "231 231 231 231") {
+				parametersCorrect = true;
+			}
+		});
+		
+		Duckdown.parse("<testingfeather a:123 123 123 123 b:321 321 321 321 c:231 231 231 231>");
 		
 		parametersCorrect.should.be.true;
 	});

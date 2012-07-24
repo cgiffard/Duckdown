@@ -114,7 +114,7 @@
 		// console.log(this.parserAST);
 		return this.parserAST;
 	};
-	function i(depth) { var str = ""; while (str.length < depth) {str+="\t";}return str;}
+	
 	Duckdown.prototype.parseToken = function(state, input) {
 		var currentState, newState, tokenGenus, stateGenus;
 		

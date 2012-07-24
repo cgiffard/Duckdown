@@ -12,7 +12,9 @@ describe("Duckdown API Surface",function() {
 		"parseToken",
 		"registerFeather",
 		"unregisterFeather",
-		"hasParseState"
+		"hasParseState",
+		"addParseState",
+		"toString"
 	];
 	
 	

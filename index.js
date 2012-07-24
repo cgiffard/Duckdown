@@ -36,6 +36,7 @@
 		this.tokenPosition	= 0;
 		this.parserStates	= [];
 		this.parserAST		= [];
+		this.parseBuffer	= [];
 		
 		// Tokeniser state
 		this.characterIndex	= 0;
@@ -92,7 +93,7 @@
 			this.characterIndex = charIndex;
 			this.prevChar = this.curChar;
 		}
-		console.log(this.tokens);
+		//console.log(this.tokens);
 		return this.tokens;
 	};
 	
@@ -107,6 +108,8 @@
 	};
 	
 	Duckdown.prototype.parseToken = function(state, input) {
+		var currentState, newState, tokenGenus, stateGenus;
+		
 		if (this instanceof Duckdown) state = this;
 		
 		if (input && input.length) {
@@ -116,11 +119,12 @@
 		
 		state.currentToken = state.tokens[state.tokenPosition];
 		
-		console.log("Processing token ",state.currentToken);
+		//console.log("Processing token ",state.currentToken);
 		// Search our current state list for exit conditions
 		for (var stateIndex = state.parserStates.length - 1; stateIndex >= 0; stateIndex--) {
-			var currentState = state.parserStates[stateIndex],
-				stateGenus = Grammar.stateList[currentState];
+			// Get genus information
+			currentState = state.parserStates[stateIndex];
+			stateGenus = Grammar.stateList[currentState];
 			
 			// Check to see we haven't already cached exit condition for reverse lookup
 			// If not, loop until we locate it, and cache info.
@@ -138,22 +142,32 @@
 			}
 			
 			if (stateGenus.exitCondition && stateGenus.exitCondition.exec(state.currentToken)) {
-				
+				console.log("met exit condition for a current state");
 				// First of all, process our now-closed token.
 				// Are we
 				
-				
+				// swallow token components that matched
 			}
 		}
 		
 		if (Grammar.tokenMappings[this.currentToken]) {
-			var tokenGenus = Grammar.tokenMappings[state.currentToken];
-			
-			if (state.hasParseState(tokenGenus.state)) {
-				
-			}
+			// Get genus information
+			tokenGenus	= Grammar.tokenMappings[state.currentToken];
+			newState	= tokenGenus.state;
+			stateGenus	= Grammar.stateList[currentState];
 			
 			// search our current state list for this genus state
+			if (state.hasParseState(tokenGenus.state)) {
+				console.log("We're already subscribed to this state.");
+			} else {
+				console.log("we're not subscribed to this state.");
+				
+				state.addParseState(tokenGenus.state);
+				
+				console.log("state list now looks like",state.parserStates);
+			}
+			
+			
 			// if the state already exists, consult genus model
 			// if model allows nesting, nest
 			// if model says close, close.
@@ -161,10 +175,14 @@
 			
 			
 			console.log("Mapping found for this token.");
-			//console.log(tokenGenus);
+			console.log(tokenGenus);
 			
 		} else {
-			//console.log("No mappings for this token");
+			console.log("No mappings for this token",state.currentToken);
+			
+			state.parseBuffer.push(state.currentToken);
+			
+			console.log(state.parseBuffer);
 		}
 	};
 	
@@ -208,6 +226,10 @@
 				return true;
 		
 		return false;
+	};
+	
+	Duckdown.prototype.addParseState = function(stateName) {
+		this.parserStates.push(stateName);
 	};
 	
 	

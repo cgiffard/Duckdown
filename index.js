@@ -50,6 +50,30 @@
 		this.prevChar		= "";
 		
 		this.feathers		= {};
+		
+		// Predigest some grammar stuff for easy lookup
+		this.tokenList = (function(){
+			var tokens = [];
+			for (var token in Grammar.tokenMappings) {
+				if (Grammar.tokenMappings.hasOwnProperty(token)) {
+					tokens.push(token);
+				}
+			}
+			
+			return tokens;
+		})();
+		
+		this.longestToken =
+			this.tokenList
+				.sort(function(a,b) {
+					return b.length - a.length;
+				})
+				.slice(0,1)
+				.pop()
+				.length;
+		
+		console.log(this.tokenList);
+		console.log("the longest token is",this.longestToken);
 	};
 	
 	// Append additional tokens to the parser token stack,
@@ -108,10 +132,10 @@
 			this.parseToken(this,null);
 		}
 		
-		// console.log("Parse buffer at end of parsing process.");
-		// console.log(this.parseBuffer);
+		console.log("Parse buffer at end of parsing process.");
+		console.log(this.parseBuffer);
 		
-		// console.log(this.parserAST);
+		console.log(this.parserAST);
 		return this.parserAST;
 	};
 	
@@ -182,17 +206,17 @@
 			
 			// Check to see we haven't already cached exit condition for reverse lookup
 			// If not, loop until we locate it, and cache info.
-			if (!stateGenus.exitCondition) {
-				var tmpTokenGenus = lookupTokenForState(currentState);
-				
-				if (tmpTokenGenus) {
-					stateGenus.exitCondition = tmpTokenGenus.exit;
-				}
+			var tmpTokenGenus = lookupTokenForState(currentState);
+			
+			if (tmpTokenGenus) {
+				stateGenus.exitCondition = tmpTokenGenus.exit;
 			}
 			
 			if (stateGenus.exitCondition && stateGenus.exitCondition.exec(state.currentToken)) {
 				// console.log(i(state.nodeDepth)+"met exit condition for a current state");
-				
+				if (!state.currentNode) {
+					console.log(state.parserStates);
+				}
 				// Add the current parse buffer to its child list.
 				state.currentNode.children.push.apply(state.currentNode.children,state.parseBuffer);
 				
@@ -228,17 +252,19 @@
 			stateGenus	= Grammar.stateList[tokenGenus.state];
 			
 			// search our current state list for this genus state
-			if (state.hasParseState(tokenGenus.state)) {
-				// console.log(i(state.nodeDepth)+"We're already subscribed to this state.");
+			if (state.hasParseState(tokenGenus.state) && !tokenGenus.allowSelfNesting) {
+				
+				// If we're already subscribed to this state, and aren't allowed to self nest,
+				// treat this token as text, and append it to the parse buffer.
+				state.parseBuffer.push(state.currentToken);
+				
 			} else {
 				
 				// If the current state allows wrapping (ie we can nest something inside it...)
 				if (weCanWrap()) {
-					// console.log(i(state.nodeDepth)+"we're not subscribed to this state.");
 					
+					// Add this token's state to our state stack
 					state.addParseState(tokenGenus.state);
-					
-					// console.log(i(state.nodeDepth)+"state list now looks like",state.parserStates);
 					
 					// Make a new node that represents this state
 					var tmpDuckNode = new DuckdownNode(tokenGenus.state);
@@ -248,8 +274,6 @@
 					tmpDuckNode.depth		= state.nodeDepth;
 					tmpDuckNode.parent		= state.currentNode;
 					tmpDuckNode.wrapper		= tokenGenus.wrapper;
-					
-					// console.log(tmpDuckNode);
 					
 					// We're not the root element. Flush the current parse-buffer to the node children.
 					// Add our new temporary node as a child of the previous current node.
@@ -276,7 +300,6 @@
 				// What we do instead is add all the subsequent tokens (until the current state has an exit condition met)
 				// to the parse buffer. These are saved as node children on state exit.
 				} else {
-					// console.log(i(state.nodeDepth)+"Oh no. Not allowed to wrap!");
 					state.parseBuffer.push(state.currentToken);
 				}
 			}

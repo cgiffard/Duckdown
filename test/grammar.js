@@ -28,4 +28,15 @@ describe("Duckdown language grammar",function() {
 		Grammar.stateList.should.be.an("object");
 	});
 	
+	it("should define a list of significant tokens",function() {
+		var Grammar = require("../grammar.js");
+		
+		Grammar.should.have.property("tokenMappings");
+		Grammar.tokenMappings.should.be.an("object");
+	});
+	
+	describe("Token mappings",function() {
+		
+	});
+	
 });

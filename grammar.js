@@ -20,7 +20,9 @@
 			// This node implicitly wraps.
 			"wrapper"			: true,
 			// Should we swallow tokens for this mapping? Or should they be made available for further processing?
-			"swallowTokens"		: false
+			"swallowTokens"		: false,
+			"exit"				: /\n/,
+			"state"				: "IMPLICIT_BREAK"
 		},
 		// XML/HTML Entity...
 		"&": {
@@ -46,6 +48,7 @@
 			// Multiple levels of emphasis don't make sense.
 			// Therefore, we die at the next emphasis tag.
 			// allowSelfNesting determines whether a tag can be nested within itself.
+			// Defaults to false.
 			"allowSelfNesting"	: false,
 			"exit"				: /[\~\n]/,
 			"validIf"			: /^\~[a-z0-9][^\n]+[a-z0-9]\~$/,
@@ -72,7 +75,44 @@
 			"exit"				: /[>\n]/,
 			"validIf"			: /^<[a-z][a-z0-9\-\_]*[^>\n]+>$/i,
 			"state"				: "SPECIAL_FEATHER"
-		}
+		},
+		// Headings, 1 - 6
+		"h1.": {
+			"wrapper"			: true,
+			"exit"				: /\n/i,
+			"validIf"			: /^\s+h\d\.\s[^\n]+$/ig,
+			"state"				: "HEADING_1"
+		},
+		"h2.": {
+			"wrapper"			: true,
+			"exit"				: /\n/i,
+			"validIf"			: /^\s+h\d\.\s[^\n]+$/ig,
+			"state"				: "HEADING_2"	
+		},
+		"h3.": {
+			"wrapper"			: true,
+			"exit"				: /\n/i,
+			"validIf"			: /^\s+h\d\.\s[^\n]+$/ig,
+			"state"				: "HEADING_3"
+		},
+		"h4.": {
+			"wrapper"			: true,
+			"exit"				: /\n/i,
+			"validIf"			: /^\s+h\d\.\s[^\n]+$/ig,
+			"state"				: "HEADING_4"
+		},
+		"h5.": {
+			"wrapper"			: true,
+			"exit"				: /\n/i,
+			"validIf"			: /^\s+h\d\.\s[^\n]+$/ig,
+			"state"				: "HEADING_5"
+		},
+		"h6.": {
+			"wrapper"			: true,
+			"exit"				: /\n/i,
+			"validIf"			: /^\s+h\d\.\s[^\n]+$/ig,
+			"state"				: "HEADING_6"
+		},
 	};
 	
 	// Parser states
@@ -80,6 +120,11 @@
 	// These states may describe bold text, nesting depth, special temporary cursor status, etc.
 	Grammar.stateList = {
 		"ENTITY": {
+			"process": function() {
+				
+			}
+		},
+		"IMPLICIT_BREAK": {
 			"process": function() {
 				
 			}

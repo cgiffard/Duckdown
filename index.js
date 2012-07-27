@@ -23,7 +23,7 @@
 	var PARSER_STATE_UNINITIALISED	= 0;
 	
 	var Duckdown = function Duckdown(options) {
-		this.options		= options;
+		this.options		= options instanceof Object ? options : {};
 		
 		// Initialise/clear parser state
 		this.clear();
@@ -102,7 +102,7 @@
 			// Set the scope for how far we're going to scan ahead.
 			var scanAhead = this.longestToken;
 				scanAhead = scanAhead > chunkLength - charIndex ? chunkLength - charIndex : scanAhead;
-				
+			
 			// Now loop backwards through our scan-ahead allowance.
 			for (; scanAhead > 0; scanAhead--) {
 				
@@ -131,23 +131,29 @@
 				// If we're already down to one character, then...
 				} else if (scanAhead === 1) {
 					
-					// ...we treat this as text. Add it to our token buffer.
-					
 					// We're also tokenising based on regions of word and non-word characters.
 					// Flip state and buffer accordingly.
+					
+					// If the parser's current state is appropriate for the current character, just add it to the buffer.
 					if ((!this.curChar.match(Grammar.wordCharacters) && this.tokeniserState === TOKENISER_STATE_INSIDE_TOKEN) ||
 						(this.curChar.match(Grammar.wordCharacters) && this.tokeniserState === TOKENISER_STATE_UNINITIALISED)) {
 					
 						this.tokenBuffer += this.curChar;
 					
+					// Looks like we're not dealing with a state-appropriate character! Time to flip state.
 					} else {
-					
+						
+						// If there are any remaining characters in the buffer
+						// from our last state, treat them as a token.
 						if (this.tokenBuffer.length) {
 							this.tokens.push(this.tokenBuffer);
 							this.tokenBuffer = "";
 						}
-					
+						
+						// Buffer the current character.
 						this.tokenBuffer += this.curChar;
+						
+						// Flip the tokeniser state!
 						this.tokeniserState = [
 								TOKENISER_STATE_INSIDE_TOKEN,
 								TOKENISER_STATE_UNINITIALISED
@@ -170,22 +176,22 @@
 			this.tokenBuffer = "";
 		}
 		
-		console.log(this.tokens);
 		return this.tokens;
 	};
 	
 	Duckdown.prototype.parse = function(input) {
-		// console.log(input);
+		
 		if (input && typeof input === "string") this.tokenise(input);
 		
 		for (; this.tokenPosition < this.tokens.length; this.tokenPosition ++) {
 			this.parseToken(this,null);
 		}
 		
-		console.log("Parse buffer at end of parsing process.");
-		console.log(this.parseBuffer);
+		if (this.parseBuffer.length) {
+			console.log("\n\n\n\n\n\nALERT ALERT ALERT WARNING PARSE BUFFER NOT EMPTY\n\n\n\n\n\nParse buffer at end of parsing process.");
+			console.log(this.parseBuffer);
+		}
 		
-		console.log(this.parserAST);
 		return this.parserAST;
 	};
 	
@@ -247,7 +253,6 @@
 			return false;
 		}
 		
-		// console.log(i(state.nodeDepth)+"Processing token ",state.currentToken);
 		// Search our current state list for exit conditions
 		for (var stateIndex = state.parserStates.length - 1; stateIndex >= 0; stateIndex--) {
 			// Get genus information
@@ -263,10 +268,14 @@
 			}
 			
 			if (stateGenus.exitCondition && stateGenus.exitCondition.exec(state.currentToken)) {
-				// console.log(i(state.nodeDepth)+"met exit condition for a current state");
+				
 				if (!state.currentNode) {
-					console.log(state.parserStates);
+					console.log("About to die.");
+					console.log("Current token was",state.currentToken);
+					console.log("Token position was",state.tokenPosition);
+					console.log(state);
 				}
+				
 				// Add the current parse buffer to its child list.
 				state.currentNode.children.push.apply(state.currentNode.children,state.parseBuffer);
 				
@@ -284,13 +293,22 @@
 				// Decrement node depth
 				state.nodeDepth --;
 				
+				// Truncate parser state stack...
+				state.parserStates.length = stateIndex;
+				
 				// Finally, do we swallow any token components that match?
 				// Check the state genus and act accordingly. If we destroy the token components, 
 				// we just return. Otherwise, allow processing to continue based on the current token.
 				
-				//aaaactually, we remove the exit condition info from the token info.
 				if (stateGenus.tokenGenus.swallowTokens !== false) {
 					state.currentToken = state.currentToken.replace(stateGenus.exitCondition,"");
+					
+					// After swallowing the exit condition, is there anything left to chew on?
+					if (!state.currentToken.length) {
+						
+						// Nope? Return.
+						return;
+					}
 				}
 			}
 		}
@@ -364,8 +382,54 @@
 		}
 	};
 	
-	Duckdown.prototype.compile = function(format) {
-		// compile from duckdown intermediate format to the destination text format.
+	// Compile from Duckdown intermediate format to the destination text format.
+	Duckdown.prototype.compile = function(input) {
+		
+		// We're getting input this late in the game?
+		// Well, we can deal with it, I guess.
+		if (input) this.parse(input);
+		
+		// Recurse through the AST, and return the result!
+		return (function Duckpile(input) {
+			
+			// Buffer for storing compiled data
+			var returnBuffer = "";
+			
+			// We've gotta make sure we can actually loop through the input...
+			if (!(input instanceof Array)) return returnBuffer;
+			
+			// Loop through input...
+			for (var index = 0; index < input.length; index++) {
+				var currentNode = input[index];
+				
+				// If the current node we're dealing with is a DuckdownNode object,
+				// we'll need to compile it first.
+				if (currentNode instanceof DuckdownNode) {
+					
+					// We only add this node to the buffer if it has children.
+					// It must also have some text, regardless of how deep we need to go to find it.
+					if (currentNode.children.length && currentNode.text().length) {
+						
+						// temporary, to simulate some modicum of parsing.
+						returnBuffer += currentNode.text();
+					}
+				
+				// Nope - our current node is a string or number, which we'll just coerce
+				// to string and add to the return buffer.
+				} else if (	typeof currentNode === "number" ||
+							typeof currentNode === "string") {
+					
+					// Just push this node onto our return buffer
+					returnBuffer += currentNode;
+					
+				}
+				
+			}
+			
+			return returnBuffer;
+			
+		})(this.parserAST);
+		
 	};
 	
 	

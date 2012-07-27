@@ -10,6 +10,33 @@
 		this.children	= [];
 		this.parent		= null;
 		this.wrapper	= true;
+		this.textCache	= "";
+	};
+	
+	DuckdownNode.prototype.text = function() {
+		var returnBuffer = "";
+		
+		if (!!this.textCache.length) return this.textCache;
+		
+		for (var childIndex = 0; childIndex < this.children.length; childIndex ++) {
+			if (this.children[childIndex] instanceof DuckdownNode) {
+				returnBuffer += this.children[childIndex].text();
+				
+			} else if (	typeof this.children[childIndex] === "string" ||
+						typeof this.children[childIndex] === "number") {
+				
+				returnBuffer += this.children[childIndex];
+				
+			} else {
+				
+				throw new Error("Unable to coerce unsupported type to string!");
+				
+			}
+		}
+		
+		this.textCache = returnBuffer;
+		
+		return this.textCache;
 	};
 	
 	

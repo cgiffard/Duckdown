@@ -151,6 +151,9 @@
 				// Join and re-split tokens by whitespace...
 				var featherTokens = featherNode.children.join("").split(/\s+/ig);
 				
+				// Now clear children from the node, because we'll replace them soon...
+				featherNode.children = [];
+				
 				// Storage for feather name
 				var featherName = featherTokens.shift().replace(/\s+/ig,"");
 				
@@ -212,7 +215,13 @@
 					featherNode.compiled = true;
 					
 					// Replace children with result from feather function
-					featherNode.children = [returnedData];
+					// ...but only if we received a string, or a number.
+					
+					if (typeof returnedData === "string" ||
+						typeof returnedData === "number") {
+						
+						featherNode.children = [returnedData];
+					}
 				}
 				
 				// Or just return.

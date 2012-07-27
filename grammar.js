@@ -57,7 +57,7 @@
 		// Bold
 		"*": {
 			"semanticLevel"		: "text",
-			"wrapper"			: "false",
+			"wrapper"			: true,
 			"allowSelfNesting"	: false,
 			"exit"				: /[\*\n]/,
 			// We're bold if there's no space after the asterisk.
@@ -112,7 +112,7 @@
 			"exit"				: /\n/i,
 			"validIf"			: /^\s+h\d\.\s[^\n]+$/ig,
 			"state"				: "HEADING_6"
-		},
+		}
 	};
 	
 	// Parser states

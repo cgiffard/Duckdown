@@ -63,6 +63,7 @@
 			return tokens;
 		})();
 		
+		// What's the longest token in the grammar?
 		this.longestToken =
 			this.tokenList
 				.sort(function(a,b) {
@@ -72,12 +73,17 @@
 				.pop()
 				.length;
 		
-		console.log(this.tokenList);
-		console.log("the longest token is",this.longestToken);
 	};
 	
 	// Append additional tokens to the parser token stack,
 	// prior to parsing (and) compilation.
+	//
+	// The scan-ahead design emphasises longer (more specific)
+	// token matches over shorter ones.
+	// 
+	// First we match known significant tokens in the text.
+	// Then if we don't find these, we split based on
+	// word/non-word characters.
 	
 	Duckdown.prototype.tokenise = function(input) {
 		// Ensure we're dealing with a string
@@ -93,34 +99,78 @@
 		for (var charIndex = 0; charIndex <= chunkLength; charIndex ++) {
 			this.curChar = input.charAt(charIndex);
 			
-			if ((!this.curChar.match(Grammar.wordCharacters) && this.tokeniserState === TOKENISER_STATE_INSIDE_TOKEN) ||
-				(this.curChar.match(Grammar.wordCharacters) && this.tokeniserState === TOKENISER_STATE_UNINITIALISED)) {
+			// Set the scope for how far we're going to scan ahead.
+			var scanAhead = this.longestToken;
+				scanAhead = scanAhead > chunkLength - charIndex ? chunkLength - charIndex : scanAhead;
 				
-				this.tokenBuffer += this.curChar;
+			// Now loop backwards through our scan-ahead allowance.
+			for (; scanAhead > 0; scanAhead--) {
 				
-				if (charIndex === chunkLength && this.tokenBuffer.length) {
-					this.tokens.push(this.tokenBuffer);
-					this.tokenBuffer = "";
+				// Extract the current phrase using the scan-ahead allowance.
+				var curPhrase = input.substr(charIndex,scanAhead);
+				
+				// Whoah, we've hit a token!
+				if (Grammar.tokenMappings[curPhrase]) {
+					
+					// If there's anything in the buffer, clear it and push it into the token list
+					if (this.tokenBuffer.length) {
+						this.tokens.push(this.tokenBuffer);
+						this.tokenBuffer = "";
+					}
+					
+					// Push the current token we've discovered
+					this.tokens.push(curPhrase);
+					
+					// Advance scan pointer by the scanahead allowance we had remaining...
+					charIndex += scanAhead - 1;
+					
+					// Break out of scan-ahead loop.
+					break;
+				
+				// OK, we haven't hit a token.
+				// If we're already down to one character, then...
+				} else if (scanAhead === 1) {
+					
+					// ...we treat this as text. Add it to our token buffer.
+					
+					// We're also tokenising based on regions of word and non-word characters.
+					// Flip state and buffer accordingly.
+					if ((!this.curChar.match(Grammar.wordCharacters) && this.tokeniserState === TOKENISER_STATE_INSIDE_TOKEN) ||
+						(this.curChar.match(Grammar.wordCharacters) && this.tokeniserState === TOKENISER_STATE_UNINITIALISED)) {
+					
+						this.tokenBuffer += this.curChar;
+					
+					} else {
+					
+						if (this.tokenBuffer.length) {
+							this.tokens.push(this.tokenBuffer);
+							this.tokenBuffer = "";
+						}
+					
+						this.tokenBuffer += this.curChar;
+						this.tokeniserState = [
+								TOKENISER_STATE_INSIDE_TOKEN,
+								TOKENISER_STATE_UNINITIALISED
+							][this.tokeniserState];
+					}
+					
 				}
 				
-			} else {
-				
-				if (this.tokenBuffer.length) {
-					this.tokens.push(this.tokenBuffer);
-					this.tokenBuffer = "";
-				}
-				
-				this.tokenBuffer += this.curChar;
-				this.tokeniserState = [
-						TOKENISER_STATE_INSIDE_TOKEN,
-						TOKENISER_STATE_UNINITIALISED
-					][this.tokeniserState];
 			}
 			
+			// Keep track of our indexes and previous character...
 			this.characterIndex = charIndex;
 			this.prevChar = this.curChar;
 		}
-		//// console.log(this.tokens);
+		
+		// If there's anything left in the token buffer now, add it to the token list.
+		// Clear the buffer.
+		if (this.tokenBuffer.length) {
+			this.tokens.push(this.tokenBuffer);
+			this.tokenBuffer = "";
+		}
+		
+		console.log(this.tokens);
 		return this.tokens;
 	};
 	

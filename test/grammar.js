@@ -35,6 +35,7 @@ describe("Duckdown language grammar",function() {
 		Grammar.tokenMappings.should.be.an("object");
 	});
 	
+	// Lints token mappings to ensure format is correct.
 	describe("Token mappings",function() {
 		
 	});

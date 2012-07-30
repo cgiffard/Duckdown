@@ -89,6 +89,9 @@
 		// Ensure we're dealing with a string
 		if (typeof input !== "string") input = String(input);
 		
+		// Always start our document with an implicit break...
+		if (!this.tokens.length) input = "\n" + input;
+		
 		// Get length of incoming chunk...
 		var chunkLength = !!input && !!input.length ? input.length : 0;
 		
@@ -187,11 +190,6 @@
 			this.parseToken(this,null);
 		}
 		
-		if (this.parseBuffer.length) {
-			console.log("\n\n\n\n\n\nALERT ALERT ALERT WARNING PARSE BUFFER NOT EMPTY\n\n\n\n\n\nParse buffer at end of parsing process.");
-			console.log(this.parseBuffer);
-		}
-		
 		return this.parserAST;
 	};
 	
@@ -253,8 +251,13 @@
 			return false;
 		}
 		
+		// Storage for all the states we've closed during the parsing of this token
+		// (So we don't attempt to close them more than once)
+		var closedStates = "";
+		
 		// Search our current state list for exit conditions
 		for (var stateIndex = state.parserStates.length - 1; stateIndex >= 0; stateIndex--) {
+			
 			// Get genus information
 			currentState = state.parserStates[stateIndex];
 			stateGenus = Grammar.stateList[currentState];
@@ -267,14 +270,9 @@
 				stateGenus.exitCondition = tmpTokenGenus.exit;
 			}
 			
+			if (!stateGenus) throw new Error("State genus for the state " + currentState + " was not found!");
+			
 			if (stateGenus.exitCondition && stateGenus.exitCondition.exec(state.currentToken)) {
-				
-				if (!state.currentNode) {
-					console.log("About to die.");
-					console.log("Current token was",state.currentToken);
-					console.log("Token position was",state.tokenPosition);
-					console.log(state);
-				}
 				
 				// Add the current parse buffer to its child list.
 				state.currentNode.children.push.apply(state.currentNode.children,state.parseBuffer);
@@ -288,13 +286,13 @@
 				}
 				
 				// Set our new current node to the parent node of the previously current node
-				state.currentNode = state.currentNode.parentNode;
+				state.currentNode = state.currentNode.parent;
 				
 				// Decrement node depth
 				state.nodeDepth --;
 				
 				// Truncate parser state stack...
-				state.parserStates.length = stateIndex;
+				state.parserStates.length = state.nodeDepth;
 				
 				// Finally, do we swallow any token components that match?
 				// Check the state genus and act accordingly. If we destroy the token components, 
@@ -378,6 +376,21 @@
 			// Push to parse buffer (if there's anything in the current token at all!)
 			if (state.currentToken.length) {
 				state.parseBuffer.push(state.currentToken);
+			}
+			
+			// If we're at the end of the document, push data into the current node.
+			if (state.tokenPosition >= state.tokens.length -1) {
+				
+				// We are not the root element. Flush the parse buffer into tne current node.
+				if (!!state.currentNode) {
+					state.currentNode.children.push.apply(state.currentNode.children,state.parseBuffer);
+					
+				// We are the root element. Flush the current parse-buffer to the AST root.
+				} else {
+					state.parserAST.push.apply(state.parserAST,state.parseBuffer);
+				}
+				
+				state.parseBuffer = [];
 			}
 		}
 	};

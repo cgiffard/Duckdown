@@ -112,6 +112,17 @@
 			"exit"				: /\n/i,
 			"validIf"			: /^\s+h\d\.\s[^\n]+$/ig,
 			"state"				: "HEADING_6"
+		},
+		// Link detection
+		"http://": {
+			"wrapper"			: true,
+			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]]/i,
+			"state"				: "AUTO_LINK"
+		},
+		"https://": {
+			"wrapper"			: true,
+			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]]/i,
+			"state"				: "AUTO_LINK"
 		}
 	};
 	
@@ -134,7 +145,12 @@
 				
 			}
 		},
-		"TEXT_STRONG": {},
+		"TEXT_STRONG": {
+			
+		},
+		"AUTO_LINK": {
+			
+		},
 		"SPECIAL_FEATHER": {
 			
 			// Function for processing feathers!

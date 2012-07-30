@@ -78,13 +78,13 @@ function outputAST(astList,depth) {
 	depth = depth || 0;
 	
 	// Sugar for indentation
-	function indent() {};
+	function Indent() {}
 	indent.prototype.toString = function() {
 		var indentBuffer = "";
-		while (indentBuffer.length < depth*2) indentBuffer += "┊\t";
+		while (indentBuffer.length < depth*2) indentBuffer += "\x942\t";
 		return indentBuffer;
 	}
-	var indent = new indent();
+	var indent = new Indent();
 	
 	// Ensure we're dealing with some kind of array here
 	if (!(astList instanceof Array)) throw Error("AST list provided was not an array!");

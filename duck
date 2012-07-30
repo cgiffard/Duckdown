@@ -79,9 +79,9 @@ function outputAST(astList,depth) {
 	
 	// Sugar for indentation
 	function Indent() {}
-	indent.prototype.toString = function() {
+	Indent.prototype.toString = function() {
 		var indentBuffer = "";
-		while (indentBuffer.length < depth*2) indentBuffer += "\x942\t";
+		while (indentBuffer.length < depth*2) indentBuffer += "\u250a\t";
 		return indentBuffer;
 	}
 	var indent = new Indent();
@@ -93,7 +93,7 @@ function outputAST(astList,depth) {
 	
 	// Now loop through!
 	astList.forEach(function(node,count) {
-		var widget = (depth === 0 && count === 0 ? "┏  " : (count < astList.length-1 ? "┣  " : "┗  "));
+		var widget = (depth === 0 && count === 0 ? "\u250f  " : (count < astList.length-1 ? "\u2523  " : "\u2517  "));
 		var pre = indent + widget;
 		if (typeof node === "object") {
 			console.log(pre + "<" + node.state + ">");
@@ -103,4 +103,6 @@ function outputAST(astList,depth) {
 			console.log(pre + "\"" + node + "\"");
 		}
 	});
+	
+	if (!depth) console.log("______\n");
 }

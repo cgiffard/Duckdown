@@ -4,7 +4,10 @@
 //	Works as a codemirror syntax highlighting grammar.
 //	Intended to work in IE8+ and shouldn't require ES5
 //	Can compile to HTML on the client or in node
-//	Should have a comprehensive test suite for every language feature
+//	Should have a comprehensive test suite involving every language feature
+//  Must be able to tokenise, parse, and compile separately
+//  Shouldn't be locked to HTML as a compile target (other formats in future!)
+//  Ideally, should be able to handle streams, although this isn't a launch requirement.
 
 /*globals require:true module:true define:true console:true */
 
@@ -39,6 +42,7 @@
 		this.parserAST		= [];
 		this.parseBuffer	= [];
 		this.currentNode	= null;
+		this.prevNode		= null;
 		this.nodeDepth		= 0;
 		
 		// Tokeniser state
@@ -272,18 +276,60 @@
 			
 			if (!stateGenus) throw new Error("State genus for the state " + currentState + " was not found!");
 			
+			// If we've got an exit condition, and it matches the current token...
 			if (stateGenus.exitCondition && stateGenus.exitCondition.exec(state.currentToken)) {
+				
+				// Storage for the return value of a processing function
+				var returnVal = null, nodeInvalid = false;
+				
+				// Check where the token matched...
+				var matchPoint = stateGenus.exitCondition.exec(state.currentToken).index;
+				
+				// If the match point wasn't zero, we'll use it to divide the current token,
+				// and push the first part onto the current node's child list
+				if (matchPoint > 0) {
+					// Push the chunk of the current token (before the match point)
+					// onto the parser buffer to be dealt with, just like all the other baby tokens (awww)
+					state.parseBuffer.push(state.currentToken.substr(0,matchPoint));
+					
+					// And remove it from the current token.
+					state.currentToken = state.currentToken.substring(matchPoint);
+				}
 				
 				// Add the current parse buffer to its child list.
 				state.currentNode.children.push.apply(state.currentNode.children,state.parseBuffer);
 				
-				// And clear the parse buffer...
-				state.parseBuffer = [];
+				// Save exit-token
+				state.currentNode.exitToken = state.currentToken;
+				
+				// If we've got a valid-check for this token genus...
+				if (tmpTokenGenus && tmpTokenGenus.validIf instanceof RegExp) {
+					
+					// Check whether current node is valid against text-match requirement (if applicable)
+					if (!tmpTokenGenus.validIf.exec(state.currentNode.raw())) {
+						nodeInvalid = true;
+					}
+				}
+				
+				// If the node is not invalid...
+				if (!nodeInvalid) {
+					// And clear the parse buffer...
+					state.parseBuffer = [];
+					
+				} else {
+					state.parseBuffer = [state.currentNode.token].concat(state.parseBuffer);
+				}
 				
 				// Does our state genus define a processing function?
-				if (stateGenus.process && stateGenus.process instanceof Function) {
-					stateGenus.process.call(state,state.currentNode);
+				// (don't execute this function if the node has been found to be invalid)
+				if (!nodeInvalid && stateGenus.process && stateGenus.process instanceof Function) {
+					
+					// We save the return value, as we'll need it later...
+					returnVal = stateGenus.process.call(state,state.currentNode);
 				}
+				
+				// Save the pointer to the previous node, if the node isn't being thrown out.
+				if (!nodeInvalid && returnVal !== false) state.prevNode = state.currentNode;
 				
 				// Set our new current node to the parent node of the previously current node
 				state.currentNode = state.currentNode.parent;
@@ -294,11 +340,24 @@
 				// Truncate parser state stack...
 				state.parserStates.length = state.nodeDepth;
 				
+				// If stateGenus.process returned an explicit false... and now that we've cleaned up...
+				// then we assume we're to destroy this node immediately
+				// This is useful for, say, culling empty paragraphs, etc.
+				if (returnVal === false || nodeInvalid) {
+					var tree = (state.currentNode ? state.currentNode.children : state.parserAST);
+					
+					// Simply remove it by truncating the length of the current AST scope
+					tree.length --;
+				} 
+				
 				// Finally, do we swallow any token components that match?
 				// Check the state genus and act accordingly. If we destroy the token components, 
 				// we just return. Otherwise, allow processing to continue based on the current token.
 				
-				if (stateGenus.tokenGenus.swallowTokens !== false) {
+				// If the node was marked as invalid, the exit token will be already present in the
+				// buffer. So we swallow it anyway...
+				
+				if (stateGenus.tokenGenus.swallowTokens !== false && !nodeInvalid) {
 					state.currentToken = state.currentToken.replace(stateGenus.exitCondition,"");
 					
 					// After swallowing the exit condition, is there anything left to chew on?
@@ -340,6 +399,7 @@
 					tmpDuckNode.depth		= state.nodeDepth;
 					tmpDuckNode.parent		= state.currentNode;
 					tmpDuckNode.wrapper		= tokenGenus.wrapper;
+					tmpDuckNode.token		= this.currentToken;
 					
 					// We're not the root element. Flush the current parse-buffer to the node children.
 					// Add our new temporary node as a child of the previous current node.
@@ -393,6 +453,9 @@
 				state.parseBuffer = [];
 			}
 		}
+		
+		// Save the current token into the previous one!
+		state.previousToken = state.currentToken;
 	};
 	
 	// Compile from Duckdown intermediate format to the destination text format.
@@ -408,6 +471,9 @@
 			// Buffer for storing compiled data
 			var returnBuffer = "";
 			
+			// If this is a node, try and geet the children.
+			if (input instanceof DuckdownNode) input = input.children;
+			
 			// We've gotta make sure we can actually loop through the input...
 			if (!(input instanceof Array)) return returnBuffer;
 			
@@ -422,9 +488,13 @@
 					// We only add this node to the buffer if it has children.
 					// It must also have some text, regardless of how deep we need to go to find it.
 					if (currentNode.children.length && currentNode.text().length) {
+						var stateGenus = Grammar.stateList[currentNode.state];
 						
-						// temporary, to simulate some modicum of parsing.
-						returnBuffer += currentNode.text();
+						if (stateGenus && stateGenus.compile && stateGenus.compile instanceof Function) {
+							returnBuffer += stateGenus.compile(currentNode,Duckpile);
+						} else {
+							returnBuffer += currentNode.text();
+						}
 					}
 				
 				// Nope - our current node is a string or number, which we'll just coerce
@@ -432,12 +502,22 @@
 				} else if (	typeof currentNode === "number" ||
 							typeof currentNode === "string") {
 					
+					// Ensure basic XML/HTML compliance/escaping...
+					var nodeText = currentNode;
+					
+					// But we check to see whether the replacer function was defined first.
+					if (Grammar.replacer && Grammar.replacer instanceof Function) {
+						nodeText = nodeText.replace(Grammar.escapeCharacters,Grammar.replacer);
+					}
+					
 					// Just push this node onto our return buffer
-					returnBuffer += currentNode;
+					returnBuffer += nodeText;
 					
 				}
-				
 			}
+			
+			// Don't return a buffer that is only whitespace.
+			if (!returnBuffer.replace(/\s+/g,"").length) return "";
 			
 			return returnBuffer;
 			

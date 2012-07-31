@@ -5,7 +5,7 @@ With an ampersand: http://example.com/?foo=1&bar=2 (http://example.com/?foo=1&ba
 http://example.com/ (Link with (brackets))
 
 * In a list?
-* List link (http://example.com/)
+* http://example.com/ (List link)
 * It should.
 
 > Blockquoted: <http://example.com/>

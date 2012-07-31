@@ -82,12 +82,12 @@ describe("Tokenisation",function() {
 		// Empty token string check
 		var emptyTokenisation = Duckdown.tokenise("");
 		emptyTokenisation.should.be.an("array");
-		emptyTokenisation.should.be.empty;
+		emptyTokenisation.should.have.length(1);
 		
 		// Simple tokenising check
 		var simpleTokenisation = Duckdown.tokenise("*Bold Text*");
 		simpleTokenisation.should.be.an("array");
-		simpleTokenisation.should.have.length(3);
+		simpleTokenisation.should.have.length(4);
 		
 	})
 	

@@ -12,6 +12,20 @@
 	// Used for defining token boundries and splitting tokens from 
 	Grammar.wordCharacters = /[a-z0-9 ]/ig;
 	
+	// Characters which should be escaped in text
+	Grammar.escapeCharacters = /[^a-z0-9\s\-\_\:\\\/\=\%\~\`\!\@\#\$\*\(\)\+\[\]\{\}\|\;\,\.\?\']/ig;
+	
+	// Function for encoding special characters in text
+	// Uses named entities for a few known basic characters, and hex encoding for everything else.
+	Grammar.replacer = function(match,location,wholeString) {
+		if (match === "&") return "&amp;";
+		if (match === "<") return "&lt;";
+		if (match === ">") return "&gt;";
+		if (match === '"') return "&quot;";
+		
+		return "&#x" + match.charCodeAt(0).toString(16) + ";";
+	};
+	
 	// Token Mappings
 	// Used for defining token boundries for tokenisation and mapping tokens to states.
 	//
@@ -115,14 +129,19 @@
 		},
 		// Link detection
 		"http://": {
-			"wrapper"			: true,
+			"wrapper"			: false,
 			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]]/i,
 			"state"				: "AUTO_LINK"
 		},
 		"https://": {
-			"wrapper"			: true,
+			"wrapper"			: false,
 			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]]/i,
 			"state"				: "AUTO_LINK"
+		},
+		"(": {
+			"wrapper"			: true,
+			"exit"				: /(\s\s+|\n|\))/,
+			"state"				: "PAREN_DESCRIPTOR"
 		}
 	};
 	
@@ -133,11 +152,35 @@
 		"ENTITY": {
 			"process": function() {
 				
+			},
+			"compile": function(node,compiler) {
+				var lastChild = node.children[node.children.length-1];
+				
+				if (typeof lastChild === "string" && lastChild.match(/\;/)) {
+					return "&" + node.children.join("");
+				} else {
+					return "&amp;" + compiler(node.children);
+				}
 			}
 		},
 		"IMPLICIT_BREAK": {
-			"process": function() {
+			"process": function(node) {
+				// If we've got no text content, self destruct!
+				if (!node.text().length) return false;
+			},
+			
+			// Compiler...
+			"compile": function(node,compiler) {
+				// if node is something other than a paragraph,
+				// do _this_
+				// ...
+				// otherwise...
+				// ...
 				
+				// Do this!
+				var buffer = compiler(node.children);
+				
+				return "<p>" + buffer + "</p>\n";
 			}
 		},
 		"TEXT_EMPHASIS": {
@@ -149,6 +192,45 @@
 			
 		},
 		"AUTO_LINK": {
+			"compile": function(node,compiler) {
+				
+				var linkURL = node.token + node.text(),
+					linkText = linkURL;
+				
+				// If we've previously stored a relationship with a sibling paren descriptor,
+				// we've got text for the link. Otherwise, just use the URL as text.
+				if (node.linkDetail) {
+					linkText = compiler(node.linkDetail);
+				}
+				
+				return "<a href=\"" + linkURL + "\">" + linkText + "</a>";
+			}
+		},
+		"PAREN_DESCRIPTOR": {
+			// If we follow AUTO_LINK, we're the text for the link.
+			// If not, we just return as parentheses.
+			"process": function(node) {
+				
+				// If this set of parens followed a link, we store the relationship
+				// against each, and flag this paren node as being a link component
+				if (this.prevNode && this.prevNode.state === "AUTO_LINK") {
+					
+					// Of course, we need to make sure another link hasn't already been attached.
+					if (!this.prevNode.linkDetail) {
+						this.prevNode.linkDetail = node;
+						node.link = this.prevNode;
+					}
+				}
+				
+			},
+			
+			"compile": function(node,compiler) {
+				if (!node.link) {
+					return "(" + compiler(node) + ")";
+				} else {
+					return "";
+				}
+			}
 			
 		},
 		"SPECIAL_FEATHER": {

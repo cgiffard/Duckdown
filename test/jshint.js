@@ -26,3 +26,15 @@ describe("Grammar definitions",function() {
 		JSHINT.errors.should.have.length(0);
 	})
 });
+
+describe("Duckdown Node class",function() {
+	var JSHINT = require("jshint").JSHINT,
+		fs = require("fs");
+
+	it("should pass JSHint with no errors",function() {
+		var coreCode = fs.readFileSync("ducknode.js").toString();
+
+		JSHINT(coreCode);
+		JSHINT.errors.should.have.length(0);
+	})
+});

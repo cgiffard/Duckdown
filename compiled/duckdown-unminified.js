@@ -3,8 +3,20 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Thu Aug 02 2012 13:38:11 GMT+1000 (EST)
+// Package built Thu Aug 02 2012 14:37:42 GMT+1000 (EST)
 // 
+
+
+(function(glob) {
+// Little wrapper for handling require();
+
+function require(input) {
+	return window[({
+		"./ducknode.js":	"DuckdownNode",
+		"./index.js":		"Duckdown",
+		"./grammar.js":		"DuckdownGrammar"
+	})[input]];
+}
 
 
 
@@ -1237,4 +1249,6 @@
 		
 	}
 	
+})(this);
+
 })(this);

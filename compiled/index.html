@@ -27,6 +27,8 @@
 				function compileDuckdown() {
 					console.log("Compiling duckdown...");
 					
+					var startTime = Date.now();
+					
 					// Get text
 					var rawDuckdown = textarea.value;
 					
@@ -38,12 +40,17 @@
 					
 					// Output it!
 					outputArea.innerHTML = compiledDuckdown;
+					
+					console.log("Compilation took %d ms.",Date.now()-startTime);
 				}
 				
 				// Ensure we're listening to all the main events
 				textarea.addEventListener("keydown",compileDuckdown);
 				textarea.addEventListener("keyup",compileDuckdown);
 				textarea.addEventListener("change",compileDuckdown);
+				
+				// And  kick off our first compile!
+				compileDuckdown();
 			});
 		</script>
 	</body>

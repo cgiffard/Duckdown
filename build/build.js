@@ -46,15 +46,15 @@
 		var comments = "";
 		
 		function addComment(comment) {
-			comments += "// " + comment.replace(/\n/g,"\n// ") + "\n";
+			return "// " + comment.replace(/\n/g,"\n// ") + "\n";
 		}
 		
 		// Add copyright, name, description, and other information...
 		// Pull any email addresses out of the build script (don't want them harvested by bots!) and add the year
-		addComment(PackageInfo.name + " (" + PackageInfo.version + ")");
-		addComment(PackageInfo.description);
-		addComment(PackageInfo.author.replace(/\s*<[^>]+>/ig,"") + " " + ((new Date()).getYear() + 1900));
-		addComment("\n\nPackage built " + (new Date()) + "\n");
+		comments += addComment(PackageInfo.name + " (" + PackageInfo.version + ")");
+		comments += addComment(PackageInfo.description);
+		comments += addComment(PackageInfo.author.replace(/\s*<[^>]+>/ig,"") + " " + ((new Date()).getYear() + 1900));
+		comments += addComment("\n\nPackage built " + (new Date()) + "\n");
 		
 		return comments + "\n\n";
 	}
@@ -64,10 +64,9 @@
 	}
 	
 	function wrapData(inData) {
-		requireShim = getRequireData();
+		var requireShim = getRequireData();
 		
-		// return "(function(glob) {\n" + requireShim + "\n\n" + inData + "\n\n})(this);";
-		return inData;
+		return "(function(glob) {\n" + requireShim + "\n\n" + inData + "\n\n})(this);";
 	}
 	
 	function minify(inData) {

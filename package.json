@@ -1,6 +1,6 @@
 {
   "author": "Christopher Giffard <christopher.giffard@cgiffard.com>",
-  "name": "Duckdown",
+  "name": "duckdown",
   "description": "Simple, lightweight Markdown-like language with extensible grammar.",
   "version": "0.0.1",
   "homepage": "http://www.github.com/cgiffard/Duckdown.git",

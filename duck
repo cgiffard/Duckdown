@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 var Duckdown	= require("./"),
+	PackageInfo	= require("./package.json"),
 	fs			= require("fs"),
 	duck		= require("commander"),
 	duckdown	= null,
@@ -10,12 +11,13 @@ var Duckdown	= require("./"),
 
 // Thanks, commander!
 duck
-	.version("0.0.1")
+	.version(PackageInfo.version)
 	.option("-t, --tokens","Output tokens")
 	.option("-a, --ast","Show parse/AST tree")
 	.option("-v, --verbose","Verbose output")
 	.option("-s, --surpress","Surpress compiled output")
 	.option("-e, --echo","Include raw duckdown in output")
+	.option("-b, --build","Build duckdown for the browser")
 	.parse(process.argv);
 
 // Initialise Duckdown
@@ -30,29 +32,54 @@ if (duck.args.length > 1) {
 	console.warn("Warning: For the moment, the Duck CLI only deals with one file at a time.");
 }
 
-// Check to see if we were given a file...
-filename = duck.args.pop();
-if (filename && filename.length > 0) {
-	fs.readFile(filename,function(error,fileData) {
-		if (error) throw error;
-		
-		// Well we got this far...
-		parseDuckdown(fileData.toString());
-		process.exit(0);
-	});
+if (duck.build) {
+	console.log("Building Duckdown for the browser.");
 	
-// Nope. Wait for some data from STDIN
+	var build		= require("./build/build.js"),
+		filename	= __dirname + "/compiled/duckdown-unminified.js",
+		minFilename	= __dirname + "/compiled/duckdown.js";
+	
+	if (duck.args.length) {
+		filename = duck.args[0].replace(/\.js$/,"");
+		minFilename = filename + ".js";
+		filename = filename + "-unminified.js";
+	}
+	
+	console.log("Building minified version to: %s",minFilename);
+	console.log("Building unminified version to: %s",filename);
+	
+	// Run the build...
+	build(filename,false);
+	build(minFilename,true);
+	
+	process.exit(0);
+	
 } else {
-	var stdinBuffer = "";
-	stdin.resume();
-	stdin
-		.on("data",function(chunk){
-			stdinBuffer += chunk.toString();
-		})
-		.on("end",function(){
-			parseDuckdown(stdinBuffer);
+	
+	// Check to see if we were given a file...
+	filename = duck.args.pop();
+	if (filename && filename.length > 0) {
+		fs.readFile(filename,function(error,fileData) {
+			if (error) throw error;
+			
+			// Well we got this far...
+			parseDuckdown(fileData.toString());
 			process.exit(0);
 		});
+		
+	// Nope. Wait for some data from STDIN
+	} else {
+		var stdinBuffer = "";
+		stdin.resume();
+		stdin
+			.on("data",function(chunk){
+				stdinBuffer += chunk.toString();
+			})
+			.on("end",function(){
+				parseDuckdown(stdinBuffer);
+				process.exit(0);
+			});
+	}
 }
 
 

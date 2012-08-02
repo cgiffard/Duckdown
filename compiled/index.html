@@ -10,7 +10,7 @@
 		<textarea rows="10" cols="80" id="duckdowninput">*Bold Text* ~Emphasised Text~</textarea>
 		<h2>Output</h2>
 		<div id="duckdownoutput" />
-		<script type="text/javascript" href="duckdown.js"></script>
+		<script type="text/javascript" src="duckdown-unminified.js"></script>
 		<script type="text/javascript">
 			// Wait til we've loaded...
 			window.addEventListener("load",function(eventData) {
@@ -25,6 +25,8 @@
 				var outputArea = document.querySelector("div#duckdownoutput");
 				
 				function compileDuckdown() {
+					console.log("Compiling duckdown...");
+					
 					// Get text
 					var rawDuckdown = textarea.value;
 					

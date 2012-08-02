@@ -96,7 +96,17 @@ function outputAST(astList,depth) {
 		var widget = (depth === 0 && count === 0 ? "\u250f  " : (count < astList.length-1 ? "\u2523  " : "\u2517  "));
 		var pre = indent + widget;
 		if (typeof node === "object") {
-			console.log(pre + "<" + node.state + ">");
+			var sibling = "";
+			
+			if (node.previousSibling !== null && duck.verbose) {
+				if (typeof node.previousSibling === "string") {
+					sibling = " ::NODE_TEXT";
+				} else {
+					sibling = " ::" + node.previousSibling.state;
+				}
+			}
+			
+			console.log(pre + node + sibling);
 			
 			outputAST(node.children,depth+1);
 		} else {

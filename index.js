@@ -9,7 +9,7 @@
 //  Shouldn't be locked to HTML as a compile target (other formats in future!)
 //  Ideally, should be able to handle streams, although this isn't a launch requirement.
 
-/*globals require:true module:true define:true console:true */
+/*globals require:true module:true define:true console:true window:true process:true */
 
 (function(glob) {
 	
@@ -198,7 +198,7 @@
 	};
 	
 	Duckdown.prototype.parseToken = function(state, input) {
-		var currentState, newState, tokenGenus, stateGenus;
+		var currentState, newState, tokenGenus, stateGenus, tree;
 		
 		if (this instanceof Duckdown) state = this;
 		
@@ -255,6 +255,82 @@
 			return false;
 		}
 		
+		// Helper functions to ensure nesting-semantics are correct.
+		// Each token genus has a semantic class associated with it. These are:
+		// - text
+		// - textblock
+		// - hybrid
+		// - block
+		//
+		// This concept is very similar to the element semantics in HTML, and defines
+		// nesting behaviour:
+		//
+		// - A block level element is permitted to nest only within other blocks, 
+		//   and hybrid elements. It can contain any other element, regardless of text
+		//   semantics.
+		//
+		// - A hybrid element can contain any element, and nest within any element.
+		//   It is mainly used for elements where the semantics are indefinite,
+		//   such as feathers.
+		// 
+		// - A textblock can nest within hybrid and block elements, but not text or other
+		//   textblock elements. Only text elements can be contained within it.
+		//   An example of a textblock element would be a heading.
+		//
+		// - A text element can nest within any element, but can only contain other
+		//   text elements
+		//
+		// This function returns true or false depending on the nesting compatibility.
+		// If no current node is present, and the new node is being inserted directly
+		// into the document, this function will return true regardless of text semantics.
+		
+		function semanticsAreCorrect(newTokenGenus) {
+			
+			// If we're not nesting within anything, there are no restrictions
+			if (!state.currentNode) return true;
+			
+			// We have no information about the semantics of this element! Just play
+			// on the safe side.
+			if (!newTokenGenus.semanticLevel) return true;
+			
+			// If the node we're inserting is a hybrid element, it can go anywhere.
+			if (newTokenGenus.semanticLevel === "hybrid") return true;
+			
+			// Move up through the stack, and find the least permissive semantic in the stack,
+			// since that's what will determine whether we can nest.
+			var leastPermissiveSemantic = "hybrid";
+			
+			// A map of the permissiveness of each type.
+			var permissiveness = {
+				"hybrid": 4,
+				"block": 3,
+				"textblock": 2,
+				"text": 1
+			};
+			
+			for (var stateIndex = 0; stateIndex < state.parserStates.length; stateIndex++) {
+				var tokenGenus = lookupTokenForState(state.parserStates[stateIndex]);
+				
+				if (tokenGenus.semanticLevel &&
+					permissiveness[tokenGenus.semanticLevel] < permissiveness[leastPermissiveSemantic]) {
+					
+					leastPermissiveSemantic = tokenGenus.semanticLevel;
+				}
+			}
+			
+			// Simple permissiveness check. With hybrid out of the question, we want
+			// to ban any node with a more permissive semantic from nesting inside a node
+			// with a less permissive semantic.
+			
+			if (permissiveness[newTokenGenus.semanticLevel] > permissiveness[leastPermissiveSemantic]) return false;
+			
+			// And we don't allow textblocks nesting inside other textblocks.
+			if (newTokenGenus.semanticLevel === "textblock" && leastPermissiveSemantic === "textblock") return false;
+			
+			// Otherwise, you're good to go!
+			return true;
+		}
+		
 		// Storage for all the states we've closed during the parsing of this token
 		// (So we don't attempt to close them more than once)
 		var closedStates = "";
@@ -283,7 +359,9 @@
 				var returnVal = null, nodeInvalid = false;
 				
 				// Check where the token matched...
-				var matchPoint = stateGenus.exitCondition.exec(state.currentToken).index;
+				var match = stateGenus.exitCondition.exec(state.currentToken),
+					matchPoint = match.index,
+					matchLength = match[0] ? match[0].length : 0;
 				
 				// If the match point wasn't zero, we'll use it to divide the current token,
 				// and push the first part onto the current node's child list
@@ -291,16 +369,13 @@
 					// Push the chunk of the current token (before the match point)
 					// onto the parser buffer to be dealt with, just like all the other baby tokens (awww)
 					state.parseBuffer.push(state.currentToken.substr(0,matchPoint));
-					
-					// And remove it from the current token.
-					state.currentToken = state.currentToken.substring(matchPoint);
 				}
 				
 				// Add the current parse buffer to its child list.
 				state.currentNode.children.push.apply(state.currentNode.children,state.parseBuffer);
 				
 				// Save exit-token
-				state.currentNode.exitToken = state.currentToken;
+				state.currentNode.exitToken = match[0];
 				
 				// If we've got a valid-check for this token genus...
 				if (tmpTokenGenus && tmpTokenGenus.validIf instanceof RegExp) {
@@ -344,7 +419,7 @@
 				// then we assume we're to destroy this node immediately
 				// This is useful for, say, culling empty paragraphs, etc.
 				if (returnVal === false || nodeInvalid) {
-					var tree = (state.currentNode ? state.currentNode.children : state.parserAST);
+					tree = (state.currentNode ? state.currentNode.children : state.parserAST);
 					
 					// Simply remove it by truncating the length of the current AST scope
 					tree.length --;
@@ -358,7 +433,8 @@
 				// buffer. So we swallow it anyway...
 				
 				if (stateGenus.tokenGenus.swallowTokens !== false && !nodeInvalid) {
-					state.currentToken = state.currentToken.replace(stateGenus.exitCondition,"");
+					// Remove the current match from the token, if we're permitted to swallow it...
+					state.currentToken = state.currentToken.substring(matchPoint+matchLength);
 					
 					// After swallowing the exit condition, is there anything left to chew on?
 					if (!state.currentToken.length) {
@@ -386,7 +462,9 @@
 			} else {
 				
 				// If the current state allows wrapping (ie we can nest something inside it...)
-				if (weCanWrap()) {
+				// _and_ the semantics make sense (e.g. we're not inserting a block element inside
+				// a text-level element)
+				if (weCanWrap() && semanticsAreCorrect(tokenGenus)) {
 					
 					// Add this token's state to our state stack
 					state.addParseState(tokenGenus.state);
@@ -400,6 +478,21 @@
 					tmpDuckNode.parent		= state.currentNode;
 					tmpDuckNode.wrapper		= tokenGenus.wrapper;
 					tmpDuckNode.token		= this.currentToken;
+					
+					if (tokenGenus.semanticLevel) {
+						tmpDuckNode.semanticLevel = tokenGenus.semanticLevel;
+					}
+					
+					// Do we have a previous sibling for this node?
+					// If so, find it and save it into the node object!
+					
+					// Draw from the parser-buffer first if available...
+					if (state.parseBuffer.length) {
+						tmpDuckNode.previousSibling = state.parseBuffer[state.parseBuffer.length-1];
+					} else {
+						tree = (!!state.currentNode ? state.currentNode.children : state.parserAST);
+						if (tree.length) tmpDuckNode.previousSibling = tree[tree.length-1];
+					}
 					
 					// We're not the root element. Flush the current parse-buffer to the node children.
 					// Add our new temporary node as a child of the previous current node.
@@ -579,6 +672,7 @@
 		
 	} else {
 		glob.Duckdown = Duckdown;
+		
 	}
 	
 })(this);

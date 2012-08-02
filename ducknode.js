@@ -7,16 +7,18 @@
 	var Grammar = require("./grammar.js");
 	
 	var DuckdownNode = function(state) {
-		this.state		= state && typeof state === "string" ? state : "NODE_TEXT";
-		this.stateStack	= [];
-		this.depth		= 0;
-		this.children	= [];
-		this.parent		= null;
-		this.wrapper	= true;
-		this.token		= "";
-		this.exitToken	= "";
-		this.textCache	= "";
-		this.rawCache	= "";
+		this.state				= state && typeof state === "string" ? state : "NODE_TEXT";
+		this.stateStack			= [];
+		this.depth				= 0;
+		this.children			= [];
+		this.parent				= null;
+		this.wrapper			= true;
+		this.token				= "";
+		this.exitToken			= "";
+		this.textCache			= "";
+		this.rawCache			= "";
+		this.previousSibling	= null;
+		this.semanticLevel		= "text";
 	};
 	
 	// Returns the unformatted text of the node (including all descendants.)
@@ -78,6 +80,10 @@
 		this.rawCache = returnBuffer;
 		
 		return this.rawCache;
+	};
+	
+	DuckdownNode.prototype.toString = function() {
+		return "<" + this.state + ":" + this.children.length + ">";
 	};
 	
 	// Now work out how to export it properly...

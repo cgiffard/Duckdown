@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf8" />
+		<title>Duckdown in-browser test</title>
+	</head>
+	<body>
+		<h1>Duckdown in-browser test</h1>
+		<p>Write some duckdown in here:</p>
+		<textarea rows="10" cols="80" id="duckdowninput">*Bold Text* ~Emphasised Text~</textarea>
+		<h2>Output</h2>
+		<div id="duckdownoutput" />
+		<script type="text/javascript" href="duckdown.js"></script>
+		<script type="text/javascript">
+			// Wait til we've loaded...
+			window.addEventListener("load",function(eventData) {
+				
+				// Create our duckdown object
+				var duckdownCompiler = new Duckdown();
+				
+				// Get the textarea we're dealing with...
+				var textarea = document.querySelector("textarea");
+				
+				// And the region we're supposed to output to
+				var outputArea = document.querySelector("div#duckdownoutput");
+				
+				function compileDuckdown() {
+					// Get text
+					var rawDuckdown = textarea.value;
+					
+					// Clear duckdown object...
+					duckdownCompiler.clear();
+					
+					// Compile the duckdown!
+					var compiledDuckdown = duckdownCompiler.compile(rawDuckdown);
+					
+					// Output it!
+					outputArea.innerHTML = compiledDuckdown;
+				}
+				
+				// Ensure we're listening to all the main events
+				textarea.addEventListener("keydown",compileDuckdown);
+				textarea.addEventListener("keyup",compileDuckdown);
+				textarea.addEventListener("change",compileDuckdown);
+			});
+		</script>
+	</body>
+</html>

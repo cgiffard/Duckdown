@@ -36,7 +36,8 @@
 			// Should we swallow tokens for this mapping? Or should they be made available for further processing?
 			"swallowTokens"		: false,
 			"exit"				: /\n/,
-			"state"				: "IMPLICIT_BREAK"
+			"state"				: "IMPLICIT_BREAK",
+			"semanticLevel"		: "hybrid"
 		},
 		// XML/HTML Entity...
 		"&": {
@@ -50,7 +51,8 @@
 			// If this condition matches, we discard the token, and treat it as text.
 			"validIf"			: /^&#?[a-z0-9]+;$/ig,
 			// Matches this token to a corresponding parser state.
-			"state"				: "ENTITY"
+			"state"				: "ENTITY",
+			"semanticLevel"		: "text"
 		},
 		// Emphasis
 		"~": {
@@ -65,7 +67,7 @@
 			// Defaults to false.
 			"allowSelfNesting"	: false,
 			"exit"				: /[\~\n]/,
-			"validIf"			: /^\~[a-z0-9][^\n]+[a-z0-9]\~$/,
+			"validIf"			: /^\~\S[^\n]+\S\~$/,
 			"state"				: "TEXT_EMPHASIS"
 		},
 		// Bold
@@ -76,7 +78,7 @@
 			"exit"				: /[\*\n]/,
 			// We're bold if there's no space after the asterisk.
 			// Otherwise, it's considered a floating asterisk or a bullet.
-			"validIf"			: /^\*\S[^\n]+\*$/,
+			"validIf"			: /^\*\S[^\n]+\S\*$/,
 			"state"				: "TEXT_STRONG"
 		},
 		// Feathers
@@ -87,61 +89,84 @@
 			// registered feather function returns. It's never a wrapper though.
 			"semanticLevel"		: "hybrid",
 			"exit"				: /[>\n]/,
-			"validIf"			: /^<[a-z][a-z0-9\-\_]*[^>\n]+>$/i,
+			"validIf"			: /^<[a-z][a-z0-9\-\_]*(\s[^>\n]+)*>$/i,
 			"state"				: "SPECIAL_FEATHER"
+		},
+		// Inline code / preformatted text
+		"`": {
+			"wrapper"			: false,
+			"semanticLevel"		: "text",
+			"exit"				: /[`\n]/,
+			"state"				: "CODE_LITERAL"
 		},
 		// Headings, 1 - 6
 		"h1.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			"validIf"			: /^\s+h\d\.\s[^\n]+$/ig,
-			"state"				: "HEADING_1"
+			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
+			"state"				: "HEADING_1",
+			"semanticLevel"		: "textblock"
 		},
 		"h2.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			"validIf"			: /^\s+h\d\.\s[^\n]+$/ig,
-			"state"				: "HEADING_2"	
+			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
+			"state"				: "HEADING_2",
+			"semanticLevel"		: "textblock"
 		},
 		"h3.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			"validIf"			: /^\s+h\d\.\s[^\n]+$/ig,
-			"state"				: "HEADING_3"
+			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
+			"state"				: "HEADING_3",
+			"semanticLevel"		: "textblock"
 		},
 		"h4.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			"validIf"			: /^\s+h\d\.\s[^\n]+$/ig,
-			"state"				: "HEADING_4"
+			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
+			"state"				: "HEADING_4",
+			"semanticLevel"		: "textblock"
 		},
 		"h5.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			"validIf"			: /^\s+h\d\.\s[^\n]+$/ig,
-			"state"				: "HEADING_5"
+			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
+			"state"				: "HEADING_5",
+			"semanticLevel"		: "textblock"
 		},
 		"h6.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			"validIf"			: /^\s+h\d\.\s[^\n]+$/ig,
-			"state"				: "HEADING_6"
+			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
+			"state"				: "HEADING_6",
+			"semanticLevel"		: "textblock"
 		},
 		// Link detection
 		"http://": {
 			"wrapper"			: false,
-			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]]/i,
-			"state"				: "AUTO_LINK"
+			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]\#]/i,
+			"state"				: "AUTO_LINK",
+			// The exit condition matches the first _non_ link character, so we shouldn't swallow it.
+			"swallowTokens"		: false,
+			"semanticLevel"		: "text"
 		},
 		"https://": {
 			"wrapper"			: false,
-			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]]/i,
-			"state"				: "AUTO_LINK"
+			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]\#]/i,
+			"state"				: "AUTO_LINK",
+			// The exit condition matches the first _non_ link character, so we shouldn't swallow it.
+			"swallowTokens"		: false,
+			"semanticLevel"		: "text"
 		},
 		"(": {
 			"wrapper"			: true,
 			"exit"				: /(\s\s+|\n|\))/,
-			"state"				: "PAREN_DESCRIPTOR"
+			"state"				: "PAREN_DESCRIPTOR",
+			// We allow self-nesting because there might be parens in a link description,
+			// and we want to remain balanced!
+			"allowSelfNesting"	: true,
+			"semanticLevel"		: "text"
 		}
 	};
 	
@@ -156,7 +181,10 @@
 			"compile": function(node,compiler) {
 				var lastChild = node.children[node.children.length-1];
 				
-				if (typeof lastChild === "string" && lastChild.match(/\;/)) {
+				// if exit token! this is wrong!
+				if (node.exitToken === ";") {
+					return "&" + node.children.join("") + ";";
+				} else if (typeof lastChild === "string" && lastChild.match(/\;/)) {
 					return "&" + node.children.join("");
 				} else {
 					return "&amp;" + compiler(node.children);
@@ -171,31 +199,110 @@
 			
 			// Compiler...
 			"compile": function(node,compiler) {
-				// if node is something other than a paragraph,
-				// do _this_
-				// ...
-				// otherwise...
-				// ...
 				
-				// Do this!
+				// Compile children.
 				var buffer = compiler(node.children);
 				
-				return "<p>" + buffer + "</p>\n";
+				// If node contains a single child with block, textblock, or hybrid semantics...
+				var containsBlockChild = false;
+				
+				// This is a flat scan. A deep scan would be silly. (famous last words?)
+				for (var childIndex = 0; childIndex < node.children.length; childIndex ++) {
+					if (node.children[childIndex] instanceof Object &&
+						node.children[childIndex].semanticLevel !== "hybrid" && 
+						node.children[childIndex].semanticLevel !== "text") {
+						
+						containsBlockChild = true;
+						break;
+					}
+				}
+				
+				if (!containsBlockChild) {
+					return "<p>" + buffer + "</p>\n";
+				} else {
+					return buffer + "\n";
+				}
 			}
 		},
 		"TEXT_EMPHASIS": {
-			"process": function() {
-				
+			"compile": function(node,compiler) {
+				return "<em>" + compiler(node) + "</em>";
 			}
 		},
 		"TEXT_STRONG": {
-			
+			"compile": function(node,compiler) {
+				return "<strong>" + compiler(node) + "</strong>";
+			}
+		},
+		"CODE_LITERAL": {
+			"compile": function(node,compiler) {
+				return "<code>" + node.text() + "</code>";
+			}
+		},
+		"HEADING_1": {
+			"process": function(node) {
+				if (node.previousSibling) return false;
+			},
+			"compile": function(node,compiler) {
+				return "<h1>" + compiler(node) + "</h1>";
+			}
+		},
+		"HEADING_2": {
+			"process": function(node) {
+				if (node.previousSibling) return false;
+			},
+			"compile": function(node,compiler) {
+				return "<h2>" + compiler(node) + "</h2>";
+			}
+		},
+		"HEADING_3": {
+			"process": function(node) {
+				if (node.previousSibling) return false;
+			},
+			"compile": function(node,compiler) {
+				return "<h3>" + compiler(node) + "</h3>";
+			}
+		},
+		"HEADING_4": {
+			"process": function(node) {
+				if (node.previousSibling) return false;
+			},
+			"compile": function(node,compiler) {
+				return "<h4>" + compiler(node) + "</h4>";
+			}
+		},
+		"HEADING_5": {
+			"process": function(node) {
+				if (node.previousSibling) return false;
+			},
+			"compile": function(node,compiler) {
+				return "<h5>" + compiler(node) + "</h5>";
+			}
+		},
+		"HEADING_6": {
+			"process": function(node) {
+				if (node.previousSibling) return false;
+			},
+			"compile": function(node,compiler) {
+				return "<h6>" + compiler(node) + "</h6>";
+			}
 		},
 		"AUTO_LINK": {
 			"compile": function(node,compiler) {
 				
 				var linkURL = node.token + node.text(),
 					linkText = linkURL;
+				
+				// If we're in a paren-descriptor, don't compile as a link...
+				if (node.parent && node.parent.state === "PAREN_DESCRIPTOR") {
+					
+					// But only if the paren-decscriptor we're inside is actually a link component...
+					if (!!node.parent.link) {
+						
+						// Then we just return the link text as... text.
+						return linkURL;
+					}
+				}
 				
 				// If we've previously stored a relationship with a sibling paren descriptor,
 				// we've got text for the link. Otherwise, just use the URL as text.
@@ -213,12 +320,13 @@
 				
 				// If this set of parens followed a link, we store the relationship
 				// against each, and flag this paren node as being a link component
-				if (this.prevNode && this.prevNode.state === "AUTO_LINK") {
+				if (node.previousSibling && node.previousSibling.state === "AUTO_LINK") {
 					
 					// Of course, we need to make sure another link hasn't already been attached.
-					if (!this.prevNode.linkDetail) {
-						this.prevNode.linkDetail = node;
-						node.link = this.prevNode;
+					// (Not sure how that would happen, but it's good to be certain!)
+					if (!node.previousSibling.linkDetail) {
+						node.previousSibling.linkDetail = node;
+						node.link = node.previousSibling;
 					}
 				}
 				

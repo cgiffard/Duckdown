@@ -3,3 +3,9 @@
 *~This is em and strong.~*
 
 ~This is em!~
+
+-This text should be struck through.-
+
+_This text should be underlined._
+
+_This text should be underlined -and struck through.-_

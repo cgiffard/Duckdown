@@ -3,7 +3,7 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Thu Aug 02 2012 14:37:42 GMT+1000 (EST)
+// Package built Thu Aug 02 2012 15:30:48 GMT+1000 (EST)
 // 
 
 
@@ -103,6 +103,22 @@ function require(input) {
 			// Otherwise, it's considered a floating asterisk or a bullet.
 			"validIf"			: /^\*\S[^\n]+\S\*$/,
 			"state"				: "TEXT_STRONG"
+		},
+		// Struck-through
+		"-": {
+			"wrapper"			: true,
+			"semanticLevel"		: "text",
+			"exit"				: /[\-\n]/,
+			"validIf"			: /^\-\S[^\n]+\S\-$/,
+			"state"				: "TEXT_DEL"
+		},
+		// Underline
+		"_": {
+			"wrapper"			: true,
+			"semanticLevel"		: "text",
+			"exit"				: /[_\n]/,
+			"validIf"			: /^\_\S[^\n]+\S\_$/,
+			"state"				: "TEXT_UNDERLINE"
 		},
 		// Feathers
 		"<": {
@@ -255,6 +271,16 @@ function require(input) {
 		"TEXT_STRONG": {
 			"compile": function(node,compiler) {
 				return "<strong>" + compiler(node) + "</strong>";
+			}
+		},
+		"TEXT_DEL": {
+			"compile": function(node,compiler) {
+				return "<del>" + compiler(node) + "</del>";
+			}
+		},
+		"TEXT_UNDERLINE": {
+			"compile": function(node,compiler) {
+				return "<u>" + compiler(node) + "</u>";
 			}
 		},
 		"CODE_LITERAL": {
@@ -913,6 +939,7 @@ function require(input) {
 		for (var stateIndex = state.parserStates.length - 1; stateIndex >= 0; stateIndex--) {
 			
 			// Get genus information
+			console.log(state.parserStates);
 			currentState = state.parserStates[stateIndex];
 			stateGenus = Grammar.stateList[currentState];
 			

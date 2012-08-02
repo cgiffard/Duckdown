@@ -81,6 +81,22 @@
 			"validIf"			: /^\*\S[^\n]+\S\*$/,
 			"state"				: "TEXT_STRONG"
 		},
+		// Struck-through
+		"-": {
+			"wrapper"			: true,
+			"semanticLevel"		: "text",
+			"exit"				: /[\-\n]/,
+			"validIf"			: /^\-\S[^\n]+\S\-$/,
+			"state"				: "TEXT_DEL"
+		},
+		// Underline
+		"_": {
+			"wrapper"			: true,
+			"semanticLevel"		: "text",
+			"exit"				: /[_\n]/,
+			"validIf"			: /^\_\S[^\n]+\S\_$/,
+			"state"				: "TEXT_UNDERLINE"
+		},
 		// Feathers
 		"<": {
 			// Feathers are callouts to other functions. They do not wrap other Duckdown tokens.
@@ -232,6 +248,16 @@
 		"TEXT_STRONG": {
 			"compile": function(node,compiler) {
 				return "<strong>" + compiler(node) + "</strong>";
+			}
+		},
+		"TEXT_DEL": {
+			"compile": function(node,compiler) {
+				return "<del>" + compiler(node) + "</del>";
+			}
+		},
+		"TEXT_UNDERLINE": {
+			"compile": function(node,compiler) {
+				return "<u>" + compiler(node) + "</u>";
 			}
 		},
 		"CODE_LITERAL": {

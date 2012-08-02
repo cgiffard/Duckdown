@@ -16,6 +16,9 @@
   "engines": {
     "node": ">= 0.6.x < 0.9.0"
   },
+  "bin": { 
+    "duck": "./cli.js"
+  },
   "dependencies": {
     "commander": "~1.0.0"
   },

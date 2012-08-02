@@ -3,13 +3,32 @@
 	<head>
 		<meta charset="utf8" />
 		<title>Duckdown in-browser test</title>
+		<style type="text/css">
+			
+			* {
+				box-sizing: border-box;
+			}
+			
+			.book {
+				padding: 2em;
+				background-color: #EED;
+				border: solid #AA3 1px;
+				width: 100%;
+			}
+			
+			.code {
+				font-family: "Menlo", monospace;
+				font-size: 1em;
+			}
+			
+		</style>
 	</head>
 	<body>
 		<h1>Duckdown in-browser test</h1>
 		<p>Write some duckdown in here:</p>
-		<textarea rows="10" cols="80" id="duckdowninput">*Bold Text* ~Emphasised Text~</textarea>
+		<textarea rows="10" cols="80" id="duckdowninput" class="book code">*Bold Text* ~Emphasised Text~ -Struck through text- _underlined text_</textarea>
 		<h2>Output</h2>
-		<div id="duckdownoutput" />
+		<div id="duckdownoutput" class="book"/>
 		<script type="text/javascript" src="duckdown-unminified.js"></script>
 		<script type="text/javascript">
 			// Wait til we've loaded...

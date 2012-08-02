@@ -339,6 +339,7 @@
 		for (var stateIndex = state.parserStates.length - 1; stateIndex >= 0; stateIndex--) {
 			
 			// Get genus information
+			console.log(state.parserStates);
 			currentState = state.parserStates[stateIndex];
 			stateGenus = Grammar.stateList[currentState];
 			

@@ -3,7 +3,7 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Fri Aug 03 2012 16:51:05 GMT+1000 (EST)
+// Package built Mon Aug 06 2012 15:05:55 GMT+1000 (EST)
 // 
 
 
@@ -222,7 +222,7 @@ function require(input) {
 		"(": {
 			"wrapper"			: true,
 			"exit"				: /(\s\s+|\n|\))/,
-			"validIf"			: /^\([^\(]+\)$/,
+			"validIf"			: /^\([^\n]+\)$/,
 			"state"				: "PAREN_DESCRIPTOR",
 			// We allow self-nesting because there might be parens in a link description,
 			// and we want to remain balanced!

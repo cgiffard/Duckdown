@@ -199,7 +199,7 @@
 		"(": {
 			"wrapper"			: true,
 			"exit"				: /(\s\s+|\n|\))/,
-			"validIf"			: /^\([^\(]+\)$/,
+			"validIf"			: /^\([^\n]+\)$/,
 			"state"				: "PAREN_DESCRIPTOR",
 			// We allow self-nesting because there might be parens in a link description,
 			// and we want to remain balanced!

@@ -19,7 +19,15 @@
 		this.rawCache			= "";
 		this.previousSibling	= null;
 		this.semanticLevel		= "text";
+		
+		// Is this node mismatched?
+		this.mismatched			= false;
 	};
+	
+	// Helper function for escaping input...
+	function escape(input) {
+		return input.replace(Grammar.escapeCharacters,Grammar.replacer);
+	}
 	
 	// Returns the unformatted text of the node (including all descendants.)
 	DuckdownNode.prototype.text = function() {
@@ -35,7 +43,7 @@
 						typeof this.children[childIndex] === "number") {
 				
 				// Ensure basic XML/HTML compliance/escaping...
-				var childText = this.children[childIndex].replace(Grammar.escapeCharacters,Grammar.replacer);
+				var childText = escape(this.children[childIndex]);
 				
 				returnBuffer += childText;
 				
@@ -52,10 +60,10 @@
 	};
 	
 	// Returns the raw duckdown used to generate the node (including all descendants.)
-	DuckdownNode.prototype.raw = function() {
+	DuckdownNode.prototype.raw = function(escaped) {
 		var returnBuffer = "";
 		
-		if (!!this.rawCache.length) return this.rawCache;
+		if (!!this.rawCache.length) return escaped ? escape(this.rawCache) : this.rawCache;
 		
 		returnBuffer += this.token;
 		
@@ -77,9 +85,10 @@
 		
 		returnBuffer += this.exitToken;
 		
+		// Cache the raw data for later...
 		this.rawCache = returnBuffer;
 		
-		return this.rawCache;
+		return escaped ? escape(this.rawCache) : this.rawCache;
 	};
 	
 	DuckdownNode.prototype.toString = function() {

@@ -39,6 +39,25 @@
 			"state"				: "IMPLICIT_BREAK",
 			"semanticLevel"		: "hybrid"
 		},
+		"\t": {
+			// This node implicitly wraps.
+			"wrapper"			: true,
+			// Should we swallow tokens for this mapping? Or should they be made available for further processing?
+			"swallowTokens"		: false,
+			"exit"				: /\n/,
+			"state"				: "IMPLICIT_INDENT",
+			"semanticLevel"		: "hybrid"
+		},
+		// Four spaces (equivalent to tab above)
+		"    ": {
+			// This node implicitly wraps.
+			"wrapper"			: true,
+			// Should we swallow tokens for this mapping? Or should they be made available for further processing?
+			"swallowTokens"		: false,
+			"exit"				: /\n/,
+			"state"				: "IMPLICIT_INDENT",
+			"semanticLevel"		: "hybrid"
+		},
 		// XML/HTML Entity...
 		"&": {
 			// Determines whether this is a one-off token, or whether it wraps other elements.
@@ -162,6 +181,7 @@
 		"http://": {
 			"wrapper"			: false,
 			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]\#]/i,
+			"validIf"			: /^http[s]?:\/\/[a-z0-9\-]+(\:\d+)?.*$/i,
 			"state"				: "AUTO_LINK",
 			// The exit condition matches the first _non_ link character, so we shouldn't swallow it.
 			"swallowTokens"		: false,
@@ -170,6 +190,7 @@
 		"https://": {
 			"wrapper"			: false,
 			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]\#]/i,
+			"validIf"			: /^http[s]?:\/\/[a-z0-9\-]+(\:\d+)?.*$/i,
 			"state"				: "AUTO_LINK",
 			// The exit condition matches the first _non_ link character, so we shouldn't swallow it.
 			"swallowTokens"		: false,
@@ -178,6 +199,7 @@
 		"(": {
 			"wrapper"			: true,
 			"exit"				: /(\s\s+|\n|\))/,
+			"validIf"			: /^\([^\(]+\)$/,
 			"state"				: "PAREN_DESCRIPTOR",
 			// We allow self-nesting because there might be parens in a link description,
 			// and we want to remain balanced!
@@ -203,7 +225,7 @@
 				} else if (typeof lastChild === "string" && lastChild.match(/\;/)) {
 					return "&" + node.children.join("");
 				} else {
-					return "&amp;" + compiler(node.children);
+					return "&amp;" + compiler(node);
 				}
 			}
 		},
@@ -217,10 +239,11 @@
 			"compile": function(node,compiler) {
 				
 				// Compile children.
-				var buffer = compiler(node.children);
+				var buffer = compiler(node);
 				
 				// If node contains a single child with block, textblock, or hybrid semantics...
-				var containsBlockChild = false;
+				// or an implicit_indent object...
+				var compileWithWrapper = true;
 				
 				// This is a flat scan. A deep scan would be silly. (famous last words?)
 				for (var childIndex = 0; childIndex < node.children.length; childIndex ++) {
@@ -228,15 +251,72 @@
 						node.children[childIndex].semanticLevel !== "hybrid" && 
 						node.children[childIndex].semanticLevel !== "text") {
 						
-						containsBlockChild = true;
+						compileWithWrapper = false;
+						break;
+					
+					// And we don't compile a wrapper around implicit indents either.
+					} else if (node.children[childIndex].state === "IMPLICIT_INDENT") {
+						
+						compileWithWrapper = false;
 						break;
 					}
 				}
 				
-				if (!containsBlockChild) {
+				if (compileWithWrapper) {
 					return "<p>" + buffer + "</p>\n";
 				} else {
 					return buffer + "\n";
+				}
+			}
+		},
+		"IMPLICIT_INDENT": {
+			"process": function(node) {
+				// If we've got no text content, self destruct!
+				if (!node.text().length) return false;
+			},
+			
+			// Compile conditional on contents...
+			"compile": function(node,compiler) {
+				
+				// if none of our children are lists
+				// or blockquotes
+				// or anything else funky
+				// if we're the direct child of an implicit break
+				// or a block or hybrid element (no headings etc.)
+				// then we compile as preformatted text.
+				// otherwise, just compile our children and return...
+				
+				var compilePreformatted = false;
+				
+				// If we don't have a parent element (not sure how that would happen...)
+				// If we are the direct child of an implicit break
+				// or a block or hybrid element...
+				if (!node.parent							||
+					node.parent.state === "IMPLICIT_BREAK"	||
+					node.parent.semanticLevel === "block"	||
+					node.parent.semanticLevel === "hybrid"	) {
+					
+					var containsBlockChildren = false;
+					
+					// And if none of our children are block level elements
+					// (lists, etc.) then it's probably safe to assume we're just text.
+					for (var childIndex = 0; childIndex < node.children.length; childIndex ++) {
+						if (node.children[childIndex].semanticLevel === "block" ||
+							node.children[childIndex].semanticLevel === "textblock") {
+							
+							containsBlockChildren = true;
+							break;
+						}
+					}
+					
+					// If after all that, we didn't find any block children...
+					if (!containsBlockChildren) compilePreformatted = true;
+				}
+				
+				if (compilePreformatted) {
+					return "<pre>" + node.raw(true).replace(/^\s+/,"") + "</pre>\n";
+				} else {
+					return compiler(node);
 				}
 			}
 		},

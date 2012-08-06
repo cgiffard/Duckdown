@@ -4,6 +4,14 @@ With an ampersand: http://example.com/?foo=1&bar=2 (http://example.com/?foo=1&ba
 
 http://example.com/ (Link with (brackets))
 
+An example https link: https://www.example.com without a final slash
+
+Brackets appearing (without the presence of a link)
+
+Inside the link description, http://www.example.com (~can we have emphasised, or *strong* text?~)
+
+Link followed by confusing emoticon http://www.example.com (-:
+
 * In a list?
 * http://example.com/ (List link)
 * It should.

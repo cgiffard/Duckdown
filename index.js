@@ -44,6 +44,8 @@
 		this.currentNode	= null;
 		this.prevNode		= null;
 		this.nodeDepth		= 0;
+		// Previous token ended with whitespace
+		this.whitespace		= false;
 		
 		// Tokeniser state
 		this.characterIndex	= 0;
@@ -581,6 +583,13 @@
 			// Push to parse buffer (if there's anything in the current token at all!)
 			if (state.currentToken.length) {
 				state.parseBuffer.push(state.currentToken);
+				
+				// Store whether the previous token was whitespace...
+				if (state.currentToken.match(/\s+$/)) {
+					state.whitespace = true;
+				} else {
+					state.whitespace = false;
+				}
 			}
 			
 			// If we're at the end of the document, push data into the current node.

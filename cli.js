@@ -104,14 +104,15 @@
 			"nodeinvalid",
 			"nodeselfdestruct",
 			"compilestart",
-			"compileend",
+			"compileend"
 			].forEach(function(eventName) {
 				// Generate a curry function to parse the event name through as the first argument
 				duckdown.on(eventName,(function(name) {
 					return function EventListener() {
-						duckLog.apply(duckdown,[name].concat([].slice.call(arguments,0)));
+						var args = arguments;
+						duckLog.apply(duckdown,[name].concat([].slice.call(args,0)));
 					};
-				})(eventName))
+				})(eventName));
 			});
 	}
 	
@@ -216,7 +217,7 @@
 			var indentBuffer = "";
 			while (indentBuffer.length < depth*2) indentBuffer += "\u250a\t";
 			return indentBuffer;
-		}
+		};
 		var indent = new Indent();
 		
 		// Ensure we're dealing with some kind of array here

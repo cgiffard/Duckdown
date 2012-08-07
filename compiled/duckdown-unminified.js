@@ -3,7 +3,7 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Tue Aug 07 2012 16:29:05 GMT+1000 (EST)
+// Package built Tue Aug 07 2012 22:31:38 GMT+1000 (EST)
 // 
 
 
@@ -228,6 +228,14 @@ function require(input) {
 			// and we want to remain balanced!
 			"allowSelfNesting"	: true,
 			"semanticLevel"		: "text"
+		},
+		"--": {
+			"wrapper"			: false,
+			"exit"				: /[^\-]/i,
+			"validIf"			: /^\-\-+\n*$/i,
+			"state"				: "HORIZONTAL_RULE",
+			"semanticLevel"		: "block",
+			"swallowTokens"		: false
 		}
 	};
 	
@@ -469,6 +477,15 @@ function require(input) {
 				}
 			}
 			
+		},
+		"HORIZONTAL_RULE": {
+			//"process": function(node) {
+			//	// We've gotta be the first thing in our container.
+			//	if (node.previousSibling) return false;
+			//},
+			"compile": function(node,compiler) {
+				return "<hr />";
+			}
 		},
 		"SPECIAL_FEATHER": {
 			
@@ -733,6 +750,8 @@ function require(input) {
 		this.currentNode	= null;
 		this.prevNode		= null;
 		this.nodeDepth		= 0;
+		// Previous token ended with whitespace
+		this.whitespace		= false;
 		
 		// Tokeniser state
 		this.characterIndex	= 0;
@@ -1270,6 +1289,13 @@ function require(input) {
 			// Push to parse buffer (if there's anything in the current token at all!)
 			if (state.currentToken.length) {
 				state.parseBuffer.push(state.currentToken);
+				
+				// Store whether the previous token was whitespace...
+				if (state.currentToken.match(/\s+$/)) {
+					state.whitespace = true;
+				} else {
+					state.whitespace = false;
+				}
 			}
 			
 			// If we're at the end of the document, push data into the current node.

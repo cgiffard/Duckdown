@@ -205,6 +205,14 @@
 			// and we want to remain balanced!
 			"allowSelfNesting"	: true,
 			"semanticLevel"		: "text"
+		},
+		"--": {
+			"wrapper"			: false,
+			"exit"				: /[^\-]/i,
+			"validIf"			: /^\-\-+\n*$/i,
+			"state"				: "HORIZONTAL_RULE",
+			"semanticLevel"		: "block",
+			"swallowTokens"		: false
 		}
 	};
 	
@@ -446,6 +454,15 @@
 				}
 			}
 			
+		},
+		"HORIZONTAL_RULE": {
+			//"process": function(node) {
+			//	// We've gotta be the first thing in our container.
+			//	if (node.previousSibling) return false;
+			//},
+			"compile": function(node,compiler) {
+				return "<hr />";
+			}
 		},
 		"SPECIAL_FEATHER": {
 			

@@ -77,6 +77,7 @@
 				.pop()
 				.length;
 		
+		this.emit("clear");
 	};
 	
 	// Append additional tokens to the parser token stack,
@@ -92,6 +93,8 @@
 	Duckdown.prototype.tokenise = function(input) {
 		// Ensure we're dealing with a string
 		if (typeof input !== "string") input = String(input);
+		
+		this.emit("tokenisestart");
 		
 		// Always start our document with an implicit break...
 		if (!this.tokens.length) input = "\n" + input;
@@ -183,6 +186,8 @@
 			this.tokenBuffer = "";
 		}
 		
+		this.emit("tokeniseend");
+		
 		return this.tokens;
 	};
 	
@@ -190,9 +195,15 @@
 		
 		if (input && typeof input === "string") this.tokenise(input);
 		
+		// Emit parse-event
+		this.emit("parsestart");
+		
 		for (; this.tokenPosition < this.tokens.length; this.tokenPosition ++) {
 			this.parseToken(this,null);
 		}
+		
+		// Emit parse-end event
+		this.emit("parseend");
 		
 		return this.parserAST;
 	};
@@ -208,6 +219,9 @@
 		}
 		
 		state.currentToken = state.tokens[state.tokenPosition];
+		
+		// Emit parse-token event
+		state.emit("parsetoken",state.currentToken);
 		
 		// Helper function to determine whether wrapping is permitted...
 		function weCanWrap() {
@@ -515,7 +529,7 @@
 					var nonWhitespaceBuffer =
 							state.parseBuffer
 								.filter(function(item) {
-									return !!item.replace(/\s+/ig,"").length
+									return !!item.replace(/\s+/ig,"").length;
 								});
 					
 					if (nonWhitespaceBuffer.length) {
@@ -592,8 +606,11 @@
 		// Well, we can deal with it, I guess.
 		if (input) this.parse(input);
 		
+		// Emit compile event
+		this.emit("compilestart");
+		
 		// Recurse through the AST, and return the result!
-		return (function duckpile(input) {
+		var compileResult = (function duckpile(input) {
 			var inputList = [];
 			
 			// Initially, we'll just assume our child list is the direct input
@@ -665,6 +682,9 @@
 			
 		})(this.parserAST);
 		
+		this.emit("compileend",compileResult);
+		
+		return compileResult;
 	};
 	
 	
@@ -684,11 +704,14 @@
 		if (this.feathers[name])							throw new Error("A feather with the specified name already exists.");
 		if (!(callback && callback instanceof Function))	throw new Error("You must provide a function for processing the feather output.");
 		
+		
+		this.emit("registerfeather",name,callback);
 		this.feathers[name] = callback;
 	};
 	
 	Duckdown.prototype.unregisterFeather = function(name) {
 		if (!this.feathers[name]) throw new Error("Requested feather does not exist.");
+		this.emit("unregisterfeather",name);
 		
 		delete this.feathers[name];
 	};
@@ -706,9 +729,59 @@
 	};
 	
 	Duckdown.prototype.addParseState = function(stateName) {
+		this.emit("addstate",stateName);
 		this.parserStates.push(stateName);
 	};
 	
+	
+	// We're also faking event-emitter...
+	// (faking so we can run in the browser)
+	Duckdown.prototype.emit = function(name) {
+		var self = this, args = arguments;
+		
+		// If we've lost our listener object, or have no listeners, just return.
+		if (!this.eventListeners) return;
+		
+		// Ensure we've got listeners in the format we expect...
+		if (!this.eventListeners[name] || !(this.eventListeners[name] instanceof Array)) return;
+		
+		// OK, so we have listeners for this event.
+		this.eventListeners[name]
+			// We need these to be functions!
+			.filter(function(listener) {
+				return listener instanceof Function;
+			})
+			.forEach(function(listener) {
+				// Execute each listener in the context of the Duckdown object,
+				// and with the arguments we were passed (less the event name)
+				listener.apply(self,[].slice.call(args,1));
+			});
+		
+	};
+	
+	Duckdown.prototype.on = function(name,listener) {
+		// We must have a valid name...
+		if (!name || typeof name !== "string" || name.match(/[^a-z0-9\.\*\-]/ig)) {
+			throw new Error("Attempted to subscribe to event with invalid name!");
+		}
+		
+		// We've gotta have a valid function
+		if (!listener || !(listener instanceof Function)) {
+			throw new Error("Attempted to subscribe to event without a listener function!");
+		}
+		
+		// OK, we got this far.
+		// Create listener object if it doesn't exist...
+		if (!this.eventListeners || !(this.eventListeners instanceof Object)) {
+			this.eventListeners = {};
+		}
+		
+		if (this.eventListeners[name] && this.eventListeners[name] instanceof Array) {
+			this.eventListeners[name].push(listener);
+		} else {
+			this.eventListeners[name] = [listener];
+		}
+	};
 	
 	
 	// Make our API available publicly...

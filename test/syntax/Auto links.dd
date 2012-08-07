@@ -10,6 +10,10 @@ Brackets appearing (without the presence of a link)
 
 Inside the link description, http://www.example.com (~can we have emphasised, or *strong* text?~)
 
+A test of context-sensitive whitespace swallowing: http://www.example.com ((there should be no whitespace before the full-stop)).
+
+A test of unterminated paren_descriptors: http://www.example.com ((Technically should be invalid?)
+
 Link followed by confusing emoticon http://www.example.com (-:
 
 * In a list?

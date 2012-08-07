@@ -379,6 +379,7 @@
 				
 				// Check whether current node is valid against text-match requirement (if applicable)
 				if (!tmpTokenGenus.validIf.exec(state.currentNode.raw())) {
+					state.emit("nodeinvalid",state.currentNode);
 					nodeInvalid = true;
 				}
 			}
@@ -398,7 +399,12 @@
 				
 				// We save the return value, as we'll need it later...
 				returnVal = stateGenus.process.call(state,state.currentNode);
+				
+				if (returnVal === false) state.emit("nodeselfdestruct",state.currentNode);
 			}
+			
+			// Emit the nodeclosed event before we loose the current node pointer...
+			state.emit("nodeclosed",state.currentNode);
 			
 			// Save the pointer to the previous node, if the node isn't being thrown out.
 			if (!nodeInvalid && returnVal !== false) state.prevNode = state.currentNode;
@@ -734,8 +740,8 @@
 	};
 	
 	
-	// We're also faking event-emitter...
-	// (faking so we can run in the browser)
+	// We're also faking EventEmitter...
+	// (faking so we can run in the browser without actually having to include the real EventEmitter)
 	Duckdown.prototype.emit = function(name) {
 		var self = this, args = arguments;
 		

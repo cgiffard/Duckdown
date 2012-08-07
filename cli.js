@@ -99,8 +99,12 @@
 			"parsestart",
 			"parseend",
 			"parsetoken",
+			"addstate",
+			"nodeclosed",
+			"nodeinvalid",
+			"nodeselfdestruct",
 			"compilestart",
-			"compileend"
+			"compileend",
 			].forEach(function(eventName) {
 				// Generate a curry function to parse the event name through as the first argument
 				duckdown.on(eventName,(function(name) {
@@ -154,13 +158,25 @@
 				break;
 			
 			case "parsetoken":
-				log("Parsing token " + args[0].replace(/\n/ig,"\\n"));
+				log("Parsing token '" + args[0].replace(/\n/ig,"\\n") + "'");
 				log("State list: " + self.parserStates.join(","));
 				break;
 			
 			case "addstate":
 				log("Added the state " + args[0] + " to the state stack.");
 				log("State list: " + self.parserStates.join(","));
+				break;
+			
+			case "nodeclosed":
+				log("Node closed: " + args[0].state);
+				break;
+			
+			case "nodeselfdestruct":
+				log("Node self-destructed: " + args[0].state);
+				break;
+				
+			case "nodeinvalid":
+				log("Node was marked as invalid: " + args[0].raw());
 				break;
 			
 			case "compilestart":

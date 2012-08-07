@@ -36,6 +36,7 @@ Events emitted by the Duckdown parser
 * compilestart
 * compileend
 * addstate
+* nodeclosed
 
 
 

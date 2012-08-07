@@ -14,7 +14,9 @@ describe("Duckdown API Surface",function() {
 		"unregisterFeather",
 		"hasParseState",
 		"addParseState",
-		"toString"
+		"toString",
+		"emit",
+		"on"
 	];
 	
 	
@@ -42,7 +44,7 @@ describe("Duckdown API Surface",function() {
 		for (property in Duckdown) {
 			if (!Duckdown.hasOwnProperty(property)) {
 				if (!surfaceMethods.reduce(arrayReducer,false)) {
-					methodsMatch = false;
+					throw new Error("Duckdown property " + property + " is not registered with the test suite!");
 				}
 			}
 		}

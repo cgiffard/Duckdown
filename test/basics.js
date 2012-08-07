@@ -48,8 +48,6 @@ describe("Duckdown API Surface",function() {
 				}
 			}
 		}
-		
-		methodsMatch.should.be.true;
 	});
 	
 });

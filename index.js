@@ -384,15 +384,6 @@
 				}
 			}
 			
-			// If the node is not invalid...
-			if (!nodeInvalid) {
-				// And clear the parse buffer...
-				state.parseBuffer = [];
-			} else {
-				// If the node is invalid, plonk the contents of said node back in the parse buffer.
-				state.parseBuffer = [state.currentNode.token].concat(state.parseBuffer);
-			}
-			
 			// Does our state genus define a processing function?
 			// (don't execute this function if the node has been found to be invalid)
 			if (!nodeInvalid && stateGenus.process && stateGenus.process instanceof Function) {
@@ -402,6 +393,25 @@
 				
 				if (returnVal === false) state.emit("nodeselfdestruct",state.currentNode);
 			}
+			
+			// If stateGenus.process returned an explicit false... and now that we've cleaned up...
+			// then we assume we're to destroy this node immediately
+			// This is useful for, say, culling empty paragraphs, etc.
+			if (returnVal === false || nodeInvalid) {
+				tree = (state.currentNode.parent ? state.currentNode.parent.children : state.parserAST);
+				
+				// Simply remove it by truncating the length of the current AST scope
+				tree.length --;
+				
+				// If the node is invalid, plonk the contents of said node back in the current tree,
+				// (after removing ourselves from it)
+				if (nodeInvalid) {
+					tree.push.apply(tree,[state.currentNode.token].concat(state.currentNode.children));
+				}
+			}
+			
+			// And clear the parse buffer...
+			state.parseBuffer = [];
 			
 			// Emit the nodeclosed event before we loose the current node pointer...
 			state.emit("nodeclosed",state.currentNode);
@@ -417,16 +427,6 @@
 			
 			// Truncate parser state stack...
 			state.parserStates.length = state.nodeDepth;
-			
-			// If stateGenus.process returned an explicit false... and now that we've cleaned up...
-			// then we assume we're to destroy this node immediately
-			// This is useful for, say, culling empty paragraphs, etc.
-			if (returnVal === false || nodeInvalid) {
-				tree = (state.currentNode ? state.currentNode.children : state.parserAST);
-				
-				// Simply remove it by truncating the length of the current AST scope
-				tree.length --;
-			} 
 			
 			// Finally, do we swallow any token components that match?
 			// Check the state genus and act accordingly. If we destroy the token components, 

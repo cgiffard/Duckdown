@@ -5,6 +5,13 @@ Ultra-simple Markdown-inspired markup language.
 
 Preliminary documentation.
 
+Writing with Duckdown
+----------------------
+
+
+Using Duckdown
+==============
+
 
 CLI
 ---
@@ -37,8 +44,10 @@ Events emitted by the Duckdown parser
 * compileend
 * addstate
 * nodeclosed
+* nodeinvalid
+* nodeselfdestruct
 
-
+Be aware that duckdown doesn't try and clean up after you. If you throw an error in an event listener, you'll kill the current operation at hand.
 
 
 Using Duckdown in the browser
@@ -53,3 +62,15 @@ Building Duckdown
 
 Writing a Duckdown Grammar
 --------------------------
+
+
+How Duckdown works
+------------------
+
+Tokenisation
+
+State stack
+
+Node invalidation!
+
+Node processing and self-destruction

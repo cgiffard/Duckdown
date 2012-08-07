@@ -43,7 +43,7 @@
 						typeof this.children[childIndex] === "number") {
 				
 				// Ensure basic XML/HTML compliance/escaping...
-				var childText = escape(this.children[childIndex]);
+				var childText = escape(String(this.children[childIndex]));
 				
 				returnBuffer += childText;
 				
@@ -74,7 +74,7 @@
 			} else if (	typeof this.children[childIndex] === "string" ||
 						typeof this.children[childIndex] === "number") {
 				
-				returnBuffer += this.children[childIndex];
+				returnBuffer += String(this.children[childIndex]);
 				
 			} else {
 				

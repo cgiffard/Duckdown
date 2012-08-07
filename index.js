@@ -469,7 +469,7 @@
 				stateGenus.exitCondition = tmpTokenGenus.exit;
 			}
 			
-			if (!stateGenus) throw new Error("State genus for the state " + currentState + " was not found!");
+			if (!stateGenus) throw new Error("State genus for the state " + currentState + " was not found! (" + state.parserStates.join(",") + ")");
 			
 			// If we've got an exit condition, and it matches the current token...
 			if (stateGenus.exitCondition && stateGenus.exitCondition.exec(state.currentToken)) {
@@ -490,7 +490,8 @@
 			}
 		}
 		
-		if (Grammar.tokenMappings[state.currentToken]) {
+		if (Grammar.tokenMappings[state.currentToken] && Grammar.tokenMappings.hasOwnProperty(state.currentToken)) {
+			
 			// Get genus information
 			tokenGenus	= Grammar.tokenMappings[state.currentToken];
 			newState	= tokenGenus.state;

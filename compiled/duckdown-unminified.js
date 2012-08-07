@@ -3,7 +3,7 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Mon Aug 06 2012 15:05:55 GMT+1000 (EST)
+// Package built Tue Aug 07 2012 16:29:05 GMT+1000 (EST)
 // 
 
 
@@ -623,7 +623,7 @@ function require(input) {
 						typeof this.children[childIndex] === "number") {
 				
 				// Ensure basic XML/HTML compliance/escaping...
-				var childText = escape(this.children[childIndex]);
+				var childText = escape(String(this.children[childIndex]));
 				
 				returnBuffer += childText;
 				
@@ -654,7 +654,7 @@ function require(input) {
 			} else if (	typeof this.children[childIndex] === "string" ||
 						typeof this.children[childIndex] === "number") {
 				
-				returnBuffer += this.children[childIndex];
+				returnBuffer += String(this.children[childIndex]);
 				
 			} else {
 				
@@ -766,6 +766,7 @@ function require(input) {
 				.pop()
 				.length;
 		
+		this.emit("clear");
 	};
 	
 	// Append additional tokens to the parser token stack,
@@ -781,6 +782,8 @@ function require(input) {
 	Duckdown.prototype.tokenise = function(input) {
 		// Ensure we're dealing with a string
 		if (typeof input !== "string") input = String(input);
+		
+		this.emit("tokenisestart");
 		
 		// Always start our document with an implicit break...
 		if (!this.tokens.length) input = "\n" + input;
@@ -872,6 +875,8 @@ function require(input) {
 			this.tokenBuffer = "";
 		}
 		
+		this.emit("tokeniseend");
+		
 		return this.tokens;
 	};
 	
@@ -879,9 +884,15 @@ function require(input) {
 		
 		if (input && typeof input === "string") this.tokenise(input);
 		
+		// Emit parse-event
+		this.emit("parsestart");
+		
 		for (; this.tokenPosition < this.tokens.length; this.tokenPosition ++) {
 			this.parseToken(this,null);
 		}
+		
+		// Emit parse-end event
+		this.emit("parseend");
 		
 		return this.parserAST;
 	};
@@ -897,6 +908,9 @@ function require(input) {
 		}
 		
 		state.currentToken = state.tokens[state.tokenPosition];
+		
+		// Emit parse-token event
+		state.emit("parsetoken",state.currentToken);
 		
 		// Helper function to determine whether wrapping is permitted...
 		function weCanWrap() {
@@ -1054,17 +1068,9 @@ function require(input) {
 				
 				// Check whether current node is valid against text-match requirement (if applicable)
 				if (!tmpTokenGenus.validIf.exec(state.currentNode.raw())) {
+					state.emit("nodeinvalid",state.currentNode);
 					nodeInvalid = true;
 				}
-			}
-			
-			// If the node is not invalid...
-			if (!nodeInvalid) {
-				// And clear the parse buffer...
-				state.parseBuffer = [];
-			} else {
-				// If the node is invalid, plonk the contents of said node back in the parse buffer.
-				state.parseBuffer = [state.currentNode.token].concat(state.parseBuffer);
 			}
 			
 			// Does our state genus define a processing function?
@@ -1073,7 +1079,31 @@ function require(input) {
 				
 				// We save the return value, as we'll need it later...
 				returnVal = stateGenus.process.call(state,state.currentNode);
+				
+				if (returnVal === false) state.emit("nodeselfdestruct",state.currentNode);
 			}
+			
+			// If stateGenus.process returned an explicit false... and now that we've cleaned up...
+			// then we assume we're to destroy this node immediately
+			// This is useful for, say, culling empty paragraphs, etc.
+			if (returnVal === false || nodeInvalid) {
+				tree = (state.currentNode.parent ? state.currentNode.parent.children : state.parserAST);
+				
+				// Simply remove it by truncating the length of the current AST scope
+				tree.length --;
+				
+				// If the node is invalid, plonk the contents of said node back in the current tree,
+				// (after removing ourselves from it)
+				if (nodeInvalid) {
+					tree.push.apply(tree,[state.currentNode.token].concat(state.currentNode.children));
+				}
+			}
+			
+			// And clear the parse buffer...
+			state.parseBuffer = [];
+			
+			// Emit the nodeclosed event before we loose the current node pointer...
+			state.emit("nodeclosed",state.currentNode);
 			
 			// Save the pointer to the previous node, if the node isn't being thrown out.
 			if (!nodeInvalid && returnVal !== false) state.prevNode = state.currentNode;
@@ -1086,16 +1116,6 @@ function require(input) {
 			
 			// Truncate parser state stack...
 			state.parserStates.length = state.nodeDepth;
-			
-			// If stateGenus.process returned an explicit false... and now that we've cleaned up...
-			// then we assume we're to destroy this node immediately
-			// This is useful for, say, culling empty paragraphs, etc.
-			if (returnVal === false || nodeInvalid) {
-				tree = (state.currentNode ? state.currentNode.children : state.parserAST);
-				
-				// Simply remove it by truncating the length of the current AST scope
-				tree.length --;
-			} 
 			
 			// Finally, do we swallow any token components that match?
 			// Check the state genus and act accordingly. If we destroy the token components, 
@@ -1138,7 +1158,7 @@ function require(input) {
 				stateGenus.exitCondition = tmpTokenGenus.exit;
 			}
 			
-			if (!stateGenus) throw new Error("State genus for the state " + currentState + " was not found!");
+			if (!stateGenus) throw new Error("State genus for the state " + currentState + " was not found! (" + state.parserStates.join(",") + ")");
 			
 			// If we've got an exit condition, and it matches the current token...
 			if (stateGenus.exitCondition && stateGenus.exitCondition.exec(state.currentToken)) {
@@ -1159,7 +1179,8 @@ function require(input) {
 			}
 		}
 		
-		if (Grammar.tokenMappings[state.currentToken]) {
+		if (Grammar.tokenMappings[state.currentToken] && Grammar.tokenMappings.hasOwnProperty(state.currentToken)) {
+			
 			// Get genus information
 			tokenGenus	= Grammar.tokenMappings[state.currentToken];
 			newState	= tokenGenus.state;
@@ -1204,7 +1225,7 @@ function require(input) {
 					var nonWhitespaceBuffer =
 							state.parseBuffer
 								.filter(function(item) {
-									return !!item.replace(/\s+/ig,"").length
+									return !!item.replace(/\s+/ig,"").length;
 								});
 					
 					if (nonWhitespaceBuffer.length) {
@@ -1281,8 +1302,11 @@ function require(input) {
 		// Well, we can deal with it, I guess.
 		if (input) this.parse(input);
 		
+		// Emit compile event
+		this.emit("compilestart");
+		
 		// Recurse through the AST, and return the result!
-		return (function duckpile(input) {
+		var compileResult = (function duckpile(input) {
 			var inputList = [];
 			
 			// Initially, we'll just assume our child list is the direct input
@@ -1354,6 +1378,9 @@ function require(input) {
 			
 		})(this.parserAST);
 		
+		this.emit("compileend",compileResult);
+		
+		return compileResult;
 	};
 	
 	
@@ -1373,11 +1400,14 @@ function require(input) {
 		if (this.feathers[name])							throw new Error("A feather with the specified name already exists.");
 		if (!(callback && callback instanceof Function))	throw new Error("You must provide a function for processing the feather output.");
 		
+		
+		this.emit("registerfeather",name,callback);
 		this.feathers[name] = callback;
 	};
 	
 	Duckdown.prototype.unregisterFeather = function(name) {
 		if (!this.feathers[name]) throw new Error("Requested feather does not exist.");
+		this.emit("unregisterfeather",name);
 		
 		delete this.feathers[name];
 	};
@@ -1395,9 +1425,59 @@ function require(input) {
 	};
 	
 	Duckdown.prototype.addParseState = function(stateName) {
+		this.emit("addstate",stateName);
 		this.parserStates.push(stateName);
 	};
 	
+	
+	// We're also faking EventEmitter...
+	// (faking so we can run in the browser without actually having to include the real EventEmitter)
+	Duckdown.prototype.emit = function(name) {
+		var self = this, args = arguments;
+		
+		// If we've lost our listener object, or have no listeners, just return.
+		if (!this.eventListeners) return;
+		
+		// Ensure we've got listeners in the format we expect...
+		if (!this.eventListeners[name] || !(this.eventListeners[name] instanceof Array)) return;
+		
+		// OK, so we have listeners for this event.
+		this.eventListeners[name]
+			// We need these to be functions!
+			.filter(function(listener) {
+				return listener instanceof Function;
+			})
+			.forEach(function(listener) {
+				// Execute each listener in the context of the Duckdown object,
+				// and with the arguments we were passed (less the event name)
+				listener.apply(self,[].slice.call(args,1));
+			});
+		
+	};
+	
+	Duckdown.prototype.on = function(name,listener) {
+		// We must have a valid name...
+		if (!name || typeof name !== "string" || name.match(/[^a-z0-9\.\*\-]/ig)) {
+			throw new Error("Attempted to subscribe to event with invalid name!");
+		}
+		
+		// We've gotta have a valid function
+		if (!listener || !(listener instanceof Function)) {
+			throw new Error("Attempted to subscribe to event without a listener function!");
+		}
+		
+		// OK, we got this far.
+		// Create listener object if it doesn't exist...
+		if (!this.eventListeners || !(this.eventListeners instanceof Object)) {
+			this.eventListeners = {};
+		}
+		
+		if (this.eventListeners[name] && this.eventListeners[name] instanceof Array) {
+			this.eventListeners[name].push(listener);
+		} else {
+			this.eventListeners[name] = [listener];
+		}
+	};
 	
 	
 	// Make our API available publicly...

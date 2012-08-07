@@ -48,7 +48,7 @@
 			}
 			
 			.code, pre {
-				font-family: "Menlo", monospace;
+				font-family: Menlo, Consolas, Monaco, "Lucida Console", monospace;
 				font-size: 1em;
 			}
 			
@@ -58,14 +58,23 @@
 				color: #660;
 			}
 			
+			.tab .book {
+				min-height: 500px;
+			}
+			
 			.tab + .tab {
 				display: none;
 			}
 			
-			.tab h2 {
+			.tab > h2 {
 				position: absolute;
 				color: transparent;
 				top: -10000px;
+			}
+			
+			.tab > pre {
+				margin-top: 0px;
+				word-break: break-word;
 			}
 			
 			.tabs {
@@ -90,8 +99,8 @@
 			
 			.tabs > ul a { 
 				display: block;
-				padding-left: 1em;
-				padding-right: 1em;
+				padding-left: 1.129em;
+				padding-right: 1.129em;
 				padding-top: 0.5em;
 				padding-bottom: 0.5em;
 				line-height: 1em;
@@ -115,6 +124,8 @@
 				background-color: #EED;
 				padding-bottom: 0.6em;
 				margin-bottom: -0.1em;
+				padding-left: 1em;
+				padding-right: 1em;
 			}
 			
 			li.duckdownNode summary {
@@ -139,7 +150,6 @@
 				color: #663;
 			}
 			
-			/* .duckdownAST details, .duckdownAST .textNode { */
 			.duckdownAST ol {
 				padding-left: 1em;
 				margin-top: -0.7em;
@@ -148,6 +158,11 @@
 				margin-bottom: 1em;
 				border-left: solid #CCA 1px;
 				border-bottom-left-radius: 10px;
+			}
+			
+			.duckdownAST .textNode {
+				line-height: 1.4em;
+				font-size: 0.9em;
 			}
 			
 			details::before {
@@ -177,15 +192,25 @@
 				<section class="tabs">
 					<ul>
 						<li><a href="#outputtab" class="active">Output</a></li>
+						<li><a href="#rawoutputtab">Raw HTML Output</a></li>
 						<li><a href="#asttab">AST browser</a></li>
+						<li><a href="#logtab">Parser Event Log</a></li>
 					</ul>
 					<article class="tab" id="outputtab">
 						<h2>Output</h2>
 						<div id="duckdownoutput" class="book"/>
 					</article>
+					<article class="tab" id="rawoutputtab">
+						<h2>Raw HTML Output</h2>
+						<pre id="duckdownrawoutput" class="book code"/>
+					</article>
 					<article class="tab" id="asttab">
 						<h2>AST browser</h2>
 						<div id="duckdownast" class="book"/>
+					</article>
+					<article class="tab" id="logtab">
+						<h2>Parser Event Log</h2>
+						<div id="duckdownlog" class="book"/>
 					</article>
 				</section>
 			</article>
@@ -205,12 +230,13 @@
 				// Generate tab navigation...
 				var tabLinks = [].slice.call(document.querySelectorAll("section.tabs ul a"),0);
 				tabLinks.forEach(function(link) {
-					link.addEventListener("mousedown",function(eventData) {
+					link.addEventListener("click",function(eventData) {
 						var tabLinkID = link.getAttribute("href").replace(/[^a-z0-9]/ig,"");
 						
 						currentTab = tabLinkID;
 						
 						if (currentTab === "asttab") generateAST(duckdownCompiler);
+						if (currentTab === "logtab") displayLog(duckdownLog);
 						
 						tabLinks.forEach(function(linkComparison) {
 							linkComparison.className = (linkComparison === link) ? "active" : "";
@@ -231,14 +257,23 @@
 				// Create our duckdown object
 				var duckdownCompiler = new Duckdown();
 				
+				// Log for Duckdown events
+				var duckdownLog = [];
+				
 				// Get the textarea we're dealing with...
 				var textarea = document.querySelector("textarea");
 				
 				// And the region we're supposed to output to
 				var outputArea = document.querySelector("div#duckdownoutput");
 				
+				// And the raw region...
+				var rawOutputArea = document.querySelector("pre#duckdownrawoutput");
+				
 				function compileDuckdown() {
 					console.log("Compiling duckdown...");
+					
+					// Clear duckdown log...
+					duckdownLog = [];
 					
 					var startTime = (new Date).getTime();
 					
@@ -254,10 +289,15 @@
 					// Output it!
 					outputArea.innerHTML = compiledDuckdown;
 					
+					// And escape for raw...
+					rawOutputArea.innerHTML = compiledDuckdown.replace(DuckdownGrammar.escapeCharacters,DuckdownGrammar.replacer);
+					
 					console.log("Compilation took %d ms.",(new Date).getTime()-startTime);
 					document.querySelector(".status").innerHTML = "Compilation took " + ((new Date).getTime()-startTime) + "ms.";
 					
 					if (currentTab === "asttab") generateAST(duckdownCompiler);
+					
+					if (currentTab === "logtab") displayLog(duckdownLog);
 				}
 				
 				function generateAST(compiler) {
@@ -332,6 +372,126 @@
 				textarea.addEventListener("keydown",compileDuckdown);
 				textarea.addEventListener("keyup",compileDuckdown);
 				textarea.addEventListener("change",compileDuckdown);
+				
+				// Now we start logging all the duckdown events to our internal store.
+				// Attach our events for generating a log...
+				[	"clear",
+					"tokenisestart",
+					"tokeniseend",
+					"parsestart",
+					"parseend",
+					"parsetoken",
+					"addstate",
+					"nodeclosed",
+					"nodeinvalid",
+					"nodeselfdestruct",
+					"compilestart",
+					"compileend"
+					].forEach(function(eventName) {
+						// Generate a curry function to parse the event name through as the first argument
+						duckdownCompiler.on(eventName,(function(name) {
+							return function EventListener() {
+								duckLog.apply(duckdownCompiler,[name].concat([].slice.call(arguments,0)));
+							};
+						})(eventName))
+					});
+				
+				// And a function for receiving the events in question!
+				function duckLog(eventName) {
+					var args = [].slice.call(arguments,1), self = this;
+					
+					function log() {
+						var logTime = Date.now(),
+							startTime = logTime;
+						
+						if (duckdownLog.length) {
+							startTime = duckdownLog[0].time;
+						}
+						
+						duckdownLog.push({
+							"time": logTime,
+							"data": [].slice.call(arguments,0)
+						});
+						
+						//console.log.apply(console,["+" + (logTime-startTime) + "ms\t"].concat([].slice.call(arguments,0)));
+					}
+					
+					switch (eventName) {
+						
+						case "clear":
+							log("Duckdown object cleared; state reinitialised.");
+							break;
+						
+						case "tokenisestart":
+							log("Beginning tokenising procedure.");
+							break;
+						
+						case "tokeniseend":
+							log("Completed tokenising. " + self.tokens.length + " tokens found.");
+							break;
+						
+						case "parsestart":
+							log("Beginning parsing.");
+							break;
+						
+						case "parseend":
+							log("Completed parsing");
+							break;
+						
+						case "parsetoken":
+							log("Parsing token '" + args[0].replace(/\n/ig,"\\n") + "'");
+							log("State list: " + self.parserStates.join(","));
+							break;
+						
+						case "addstate":
+							log("Added the state " + args[0] + " to the state stack.");
+							log("State list: " + self.parserStates.join(","));
+							break;
+						
+						case "nodeclosed":
+							log("Node closed: " + args[0].state);
+							break;
+						
+						case "nodeselfdestruct":
+							log("Node self-destructed: " + args[0].state);
+							break;
+							
+						case "nodeinvalid":
+							log("Node was marked as invalid: " + args[0].raw());
+							break;
+						
+						case "compilestart":
+							log("Starting compilation.");
+							break;
+							
+						case "compileend":
+							log("Completed compilation with " + args[0].length + " single-byte-characters of compiled HTML.");
+							break;
+					}
+				}
+				
+				function displayLog(logObject) {
+					var logContainer = document.querySelector("#duckdownlog");
+						logContainer.innerHTML = "";
+					
+					var containerFragment = document.createDocumentFragment(),
+						logList = document.createElement("ol"),
+						startTime = 0;
+					
+					if (logObject.length) {
+						startTime = logObject[0].time;
+					}
+					
+					logObject.forEach(function(logItem) {
+						var logItemContainer = document.createElement("li");
+							logItemContainer.innerHTML = "<strong class='time'>+" + (logItem.time - startTime) + "ms</strong> " + String(logItem.data);
+						
+						containerFragment.appendChild(logItemContainer);
+					});
+					
+					logList.appendChild(containerFragment);
+					logContainer.appendChild(logList);
+				}
 				
 				// And  kick off our first compile!
 				compileDuckdown();

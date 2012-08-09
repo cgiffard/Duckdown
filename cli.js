@@ -229,6 +229,7 @@
 		astList.forEach(function(node,count) {
 			var widget = (depth === 0 && count === 0 ? "\u250f  " : (count < astList.length-1 ? "\u2523  " : "\u2517  "));
 			var pre = indent + widget;
+			// var pretoken = indent + 
 			if (typeof node === "object") {
 				var sibling = "";
 				
@@ -240,7 +241,32 @@
 					}
 				}
 				
-				console.log(pre + node + sibling);
+				var info = "";
+				
+				// Print flags in verbose mode...
+				if (duck.verbose) {
+					for (var nodeFlag in node) {
+						if (node.hasOwnProperty(nodeFlag) &&
+							(typeof node[nodeFlag] === "boolean"||
+							 typeof node[nodeFlag] === "string" ||
+							 typeof node[nodeFlag] === "number" )) {
+							
+							if (!!node[nodeFlag]) {
+								// Indent and get ready for printing token...
+								info += depth > 0 ? "\n" + indent + "\u250a" : "\n" + indent + "\u250a";
+								info += "   ";
+							}
+							
+							if (!!node[nodeFlag] && typeof node[nodeFlag] === "boolean")
+								info += "[" + nodeFlag + "]";
+								
+							if (!!node[nodeFlag] && typeof node[nodeFlag] !== "boolean")
+								info += "[" + nodeFlag + ":" + String(node[nodeFlag]).replace(/\n/ig,"\\n") + "]";
+						}
+					}
+				}
+				
+				console.log(pre + node + sibling + info);
 				
 				outputAST(node.children,depth+1);
 			} else {

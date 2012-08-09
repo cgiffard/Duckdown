@@ -134,46 +134,48 @@
 			"exit"				: /[`\n]/,
 			"state"				: "CODE_LITERAL"
 		},
+		// Bulletted list item...
+		"* ": {
+			"wrapper"			: true,
+			"exit"				: /\n/i,
+			"state"				: "LIST_UNORDERED",
+			"semanticLevel"		: "textblock",
+			"swallowTokens"		: false
+		},
 		// Headings, 1 - 6
 		"h1.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
 			"state"				: "HEADING_1",
 			"semanticLevel"		: "textblock"
 		},
 		"h2.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
 			"state"				: "HEADING_2",
 			"semanticLevel"		: "textblock"
 		},
 		"h3.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
 			"state"				: "HEADING_3",
 			"semanticLevel"		: "textblock"
 		},
 		"h4.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
 			"state"				: "HEADING_4",
 			"semanticLevel"		: "textblock"
 		},
 		"h5.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
 			"state"				: "HEADING_5",
 			"semanticLevel"		: "textblock"
 		},
 		"h6.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
 			"state"				: "HEADING_6",
 			"semanticLevel"		: "textblock"
 		},
@@ -181,7 +183,7 @@
 		"http://": {
 			"wrapper"			: false,
 			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]\#]/i,
-			"validIf"			: /^http[s]?:\/\/[a-z0-9\-]+(\:\d+)?.*$/i,
+			"validIf"			: /^http[s]?:\/\/[a-z0-9\-\.]+(\:\d+)?(\/.*)?$/i,
 			"state"				: "AUTO_LINK",
 			// The exit condition matches the first _non_ link character, so we shouldn't swallow it.
 			"swallowTokens"		: false,
@@ -190,7 +192,7 @@
 		"https://": {
 			"wrapper"			: false,
 			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]\#]/i,
-			"validIf"			: /^http[s]?:\/\/[a-z0-9\-]+(\:\d+)?.*$/i,
+			"validIf"			: /^http[s]?:\/\/[a-z0-9\-\.]+(\:\d+)?(\/.*)?$/i,
 			"state"				: "AUTO_LINK",
 			// The exit condition matches the first _non_ link character, so we shouldn't swallow it.
 			"swallowTokens"		: false,
@@ -241,6 +243,27 @@
 			"process": function(node) {
 				// If we've got no text content, self destruct!
 				if (!node.text().length) return false;
+				
+				// Check to see whether we contain an alternate block or hybrid level element.
+				// If so, mark as such for future processing!
+				node.blockParent = false;
+				
+				// This is a flat scan. A deep scan would be silly. (famous last words?)
+				for (var childIndex = 0; childIndex < node.children.length; childIndex ++) {
+					if (node.children[childIndex] instanceof Object &&
+						node.children[childIndex].semanticLevel !== "hybrid" && 
+						node.children[childIndex].semanticLevel !== "text") {
+						
+						node.blockParent = true;
+						break;
+					
+					// And we don't compile a wrapper around implicit indents either.
+					} else if (node.children[childIndex].state === "IMPLICIT_INDENT") {
+						
+						node.blockParent = true;
+						break;
+					}
+				}
 			},
 			
 			// Compiler...
@@ -251,27 +274,43 @@
 				
 				// If node contains a single child with block, textblock, or hybrid semantics...
 				// or an implicit_indent object...
-				var compileWithWrapper = true;
-				
-				// This is a flat scan. A deep scan would be silly. (famous last words?)
-				for (var childIndex = 0; childIndex < node.children.length; childIndex ++) {
-					if (node.children[childIndex] instanceof Object &&
-						node.children[childIndex].semanticLevel !== "hybrid" && 
-						node.children[childIndex].semanticLevel !== "text") {
-						
-						compileWithWrapper = false;
-						break;
-					
-					// And we don't compile a wrapper around implicit indents either.
-					} else if (node.children[childIndex].state === "IMPLICIT_INDENT") {
-						
-						compileWithWrapper = false;
-						break;
-					}
-				}
+				var compileWithWrapper = !node.blockParent;
 				
 				if (compileWithWrapper) {
-					return "<p>" + buffer + "</p>\n";
+					
+					var openParagraph = false, closeParagraph = false;
+					
+					// If we don't have a previous sibling (meaning we're the first node or AST child) - OR -
+					// our previous sibling was an implicit break and was culled (meaning there was a double
+					// line break prior to us) then we need to open a paragraph.
+					if (!node.previousSibling || (node.prevSiblingCulled && node.prevCulledSiblingState === "IMPLICIT_BREAK")) {
+						
+						openParagraph = true;
+					}
+					
+					// If we don't have a next-sibling (meaning we're the last node or AST child) - OR -
+					// our next sibling was an implicit break and was culled (meaning there's a double line-break
+					// after us) then we need to close our paragraph.
+					if (!node.nextSibling || (node.nextSiblingCulled && node.nextCulledSiblingState === "IMPLICIT_BREAK")) {
+						
+						closeParagraph = true;
+					}
+					
+					// Alternately, if the next sibling is a block parent of another variety...
+					// That is - it contains a block level element like a list item, blockquote, etc.
+					// Or, it has no children, meaning it'll be culled.
+					if (node.nextSibling && (node.nextSibling.blockParent || !node.nextSibling.children.length)) {
+						
+						closeParagraph = true;
+					}
+					
+					// Don't want to append a space to the buffer if it finishes with one already.
+					var finalSpace = buffer.match(/\s+$/i) ? "" : " ";
+					
+					if (openParagraph) buffer = "<p>" + buffer;
+					buffer += closeParagraph ? "</p>\n" : finalSpace;
+					
+					return buffer;
 				} else {
 					return buffer + "\n";
 				}
@@ -286,13 +325,12 @@
 			// Compile conditional on contents...
 			"compile": function(node,compiler) {
 				
-				// if none of our children are lists
-				// or blockquotes
-				// or anything else funky
-				// if we're the direct child of an implicit break
-				// or a block or hybrid element (no headings etc.)
-				// then we compile as preformatted text.
+				// If we're the direct child of an implicit break,
+				// hybrid, or block level element, and we're not part
+				// of a larger paragraph, then we compile as preformatted text.
 				// otherwise, just compile our children and return...
+				
+				// List of states which will prevent us from compiling preformatted...
 				
 				var compilePreformatted = false;
 				
@@ -304,24 +342,23 @@
 					node.parent.semanticLevel === "block"	||
 					node.parent.semanticLevel === "hybrid"	) {
 					
-					var containsBlockChildren = false;
+					// If we don't have a parent, somehow
+					if (!node.parent) {
+						compilePreformatted = true;
 					
-					// And if none of our children are block level elements
-					// (lists, etc.) then it's probably safe to assume we're just text.
-					for (var childIndex = 0; childIndex < node.children.length; childIndex ++) {
-						if (node.children[childIndex].semanticLevel === "block" ||
-							node.children[childIndex].semanticLevel === "textblock") {
-							
-							containsBlockChildren = true;
-							break;
-						}
+					// If we don't have a prior sibling,
+					// we're not part of a larger paragraph!
+					} else if (!node.parent.previousSibling) {
+						compilePreformatted = true;
+					
+					// Or there was a double-line-break and the previous sibling was culled
+					} else if (node.parent.prevSiblingCulled && node.parent.prevCulledSiblingState === "IMPLICIT_BREAK") {
+						compilePreformatted = true;
 					}
-					
-					// If after all that, we didn't find any block children...
-					if (!containsBlockChildren) compilePreformatted = true;
 				}
 				
 				if (compilePreformatted) {
+					// TODO grouped preformatted text.
 					return "<pre>" + node.raw(true).replace(/^\s+/,"") + "</pre>\n";
 				} else {
 					return compiler(node);
@@ -353,9 +390,20 @@
 				return "<code>" + node.text() + "</code>";
 			}
 		},
+		"LIST_UNORDERED": {
+			"process": function(node) {
+				if (node.previousSibling) return -1;
+			},
+			"compile": function(node,compiler) {
+				return "<li>" + compiler(node) + "</li>";
+			}
+		},
 		"HEADING_1": {
 			"process": function(node) {
-				if (node.previousSibling) return false;
+				// A return value of -1 leaves the components of a self-destructed token
+				// in the document as plain text - whereas a false return value culls it
+				// from the document.
+				if (node.previousSibling) return -1;
 			},
 			"compile": function(node,compiler) {
 				return "<h1>" + compiler(node) + "</h1>";
@@ -363,7 +411,7 @@
 		},
 		"HEADING_2": {
 			"process": function(node) {
-				if (node.previousSibling) return false;
+				if (node.previousSibling) return -1;
 			},
 			"compile": function(node,compiler) {
 				return "<h2>" + compiler(node) + "</h2>";
@@ -371,7 +419,7 @@
 		},
 		"HEADING_3": {
 			"process": function(node) {
-				if (node.previousSibling) return false;
+				if (node.previousSibling) return -1;
 			},
 			"compile": function(node,compiler) {
 				return "<h3>" + compiler(node) + "</h3>";
@@ -379,7 +427,7 @@
 		},
 		"HEADING_4": {
 			"process": function(node) {
-				if (node.previousSibling) return false;
+				if (node.previousSibling) return -1;
 			},
 			"compile": function(node,compiler) {
 				return "<h4>" + compiler(node) + "</h4>";
@@ -387,7 +435,7 @@
 		},
 		"HEADING_5": {
 			"process": function(node) {
-				if (node.previousSibling) return false;
+				if (node.previousSibling) return -1;
 			},
 			"compile": function(node,compiler) {
 				return "<h5>" + compiler(node) + "</h5>";
@@ -395,7 +443,7 @@
 		},
 		"HEADING_6": {
 			"process": function(node) {
-				if (node.previousSibling) return false;
+				if (node.previousSibling) return -1;
 			},
 			"compile": function(node,compiler) {
 				return "<h6>" + compiler(node) + "</h6>";

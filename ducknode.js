@@ -15,13 +15,28 @@
 		this.wrapper			= true;
 		this.token				= "";
 		this.exitToken			= "";
-		this.textCache			= "";
-		this.rawCache			= "";
 		this.previousSibling	= null;
+		this.nextSibling		= null;
 		this.semanticLevel		= "text";
+		// Track whether this node has been processed before compilation...
+		this.processed			= false;
+		
+		// Was our /real/ previous sibling culled on close?
+		// (This doesn't preclude us from having a .previousSibling - but
+		// in that case it simply refers to the previousSibling /after/ culling.)
+		this.prevSiblingCulled = false;
+		this.prevCulledSiblingState = null;
+		
+		// Same goes for next-sibling...
+		this.nextSiblingCulled = false;
+		this.nextCulledSiblingState = null;
+		
+		// Caching for quickly returning text, etc.
+		this.textCache = "";
+		this.rawCache = "";
 		
 		// Is this node mismatched?
-		this.mismatched			= false;
+		this.mismatched = false;
 	};
 	
 	// Helper function for escaping input...

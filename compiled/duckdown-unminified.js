@@ -3,7 +3,7 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Tue Aug 07 2012 22:31:38 GMT+1000 (EST)
+// Package built Thu Aug 09 2012 11:27:03 GMT+1000 (EST)
 // 
 
 
@@ -264,6 +264,27 @@ function require(input) {
 			"process": function(node) {
 				// If we've got no text content, self destruct!
 				if (!node.text().length) return false;
+				
+				// Check to see whether we contain an alternate block or hybrid level element.
+				// If so, mark as such for future processing!
+				node.blockParent = false;
+				
+				// This is a flat scan. A deep scan would be silly. (famous last words?)
+				for (var childIndex = 0; childIndex < node.children.length; childIndex ++) {
+					if (node.children[childIndex] instanceof Object &&
+						node.children[childIndex].semanticLevel !== "hybrid" && 
+						node.children[childIndex].semanticLevel !== "text") {
+						
+						node.blockParent = true;
+						break;
+					
+					// And we don't compile a wrapper around implicit indents either.
+					} else if (node.children[childIndex].state === "IMPLICIT_INDENT") {
+						
+						node.blockParent = true;
+						break;
+					}
+				}
 			},
 			
 			// Compiler...
@@ -274,27 +295,44 @@ function require(input) {
 				
 				// If node contains a single child with block, textblock, or hybrid semantics...
 				// or an implicit_indent object...
-				var compileWithWrapper = true;
-				
-				// This is a flat scan. A deep scan would be silly. (famous last words?)
-				for (var childIndex = 0; childIndex < node.children.length; childIndex ++) {
-					if (node.children[childIndex] instanceof Object &&
-						node.children[childIndex].semanticLevel !== "hybrid" && 
-						node.children[childIndex].semanticLevel !== "text") {
-						
-						compileWithWrapper = false;
-						break;
-					
-					// And we don't compile a wrapper around implicit indents either.
-					} else if (node.children[childIndex].state === "IMPLICIT_INDENT") {
-						
-						compileWithWrapper = false;
-						break;
-					}
-				}
+				var compileWithWrapper = !node.blockParent;
 				
 				if (compileWithWrapper) {
-					return "<p>" + buffer + "</p>\n";
+					
+					var openParagraph = false, closeParagraph = false;
+					
+					// If we don't have a previous sibling (meaning we're the first node or AST child) - OR -
+					// our previous sibling was an implicit break and was culled (meaning there was a double
+					// line break prior to us) then we need to open a paragraph.
+					if (!node.previousSibling || (node.prevSiblingCulled && node.prevCulledSiblingState === "IMPLICIT_BREAK")) {
+						
+						openParagraph = true;
+					}
+					
+					// If we don't have a next-sibling (meaning we're the last node or AST child) - OR -
+					// our next sibling was an implicit break and was culled (meaning there's a double line-break
+					// after us) then we need to close our paragraph.
+					if (!node.nextSibling || (node.nextSiblingCulled && node.nextCulledSiblingState === "IMPLICIT_BREAK")) {
+						
+						closeParagraph = true;
+					}
+					
+					// Alternately, if the next sibling is a block parent of another variety...
+					// That is - it contains a block level element like a list item, blockquote, etc.
+					if (node.nextSibling && node.nextSibling.blockParent) {
+						
+						closeParagraph = true;
+					}
+					
+					
+					if (node.nextSibling && !closeParagraph) {
+						console.log(node);
+					}
+					
+					if (openParagraph) buffer = "<p>" + buffer;
+					buffer += closeParagraph ? "</p>\n" : " ";
+					
+					return buffer;
 				} else {
 					return buffer + "\n";
 				}
@@ -309,13 +347,12 @@ function require(input) {
 			// Compile conditional on contents...
 			"compile": function(node,compiler) {
 				
-				// if none of our children are lists
-				// or blockquotes
-				// or anything else funky
-				// if we're the direct child of an implicit break
-				// or a block or hybrid element (no headings etc.)
-				// then we compile as preformatted text.
+				// If we're the direct child of an implicit break,
+				// hybrid, or block level element, and we're not part
+				// of a larger paragraph, then we compile as preformatted text.
 				// otherwise, just compile our children and return...
+				
+				// List of states which will prevent us from compiling preformatted...
 				
 				var compilePreformatted = false;
 				
@@ -327,24 +364,23 @@ function require(input) {
 					node.parent.semanticLevel === "block"	||
 					node.parent.semanticLevel === "hybrid"	) {
 					
-					var containsBlockChildren = false;
+					// If we don't have a parent, somehow
+					if (!node.parent) {
+						compilePreformatted = true;
 					
-					// And if none of our children are block level elements
-					// (lists, etc.) then it's probably safe to assume we're just text.
-					for (var childIndex = 0; childIndex < node.children.length; childIndex ++) {
-						if (node.children[childIndex].semanticLevel === "block" ||
-							node.children[childIndex].semanticLevel === "textblock") {
-							
-							containsBlockChildren = true;
-							break;
-						}
+					// If we don't have a prior sibling,
+					// we're not part of a larger paragraph!
+					} else if (!node.parent.previousSibling) {
+						compilePreformatted = true;
+					
+					// Or there was a double-line-break and the previous sibling was culled
+					} else if (node.parent.prevSiblingCulled && node.parent.prevCulledSiblingState === "IMPLICIT_BREAK") {
+						compilePreformatted = true;
 					}
-					
-					// If after all that, we didn't find any block children...
-					if (!containsBlockChildren) compilePreformatted = true;
 				}
 				
 				if (compilePreformatted) {
+					// TODO grouped preformatted text.
 					return "<pre>" + node.raw(true).replace(/^\s+/,"") + "</pre>\n";
 				} else {
 					return compiler(node);
@@ -615,10 +651,21 @@ function require(input) {
 		this.textCache			= "";
 		this.rawCache			= "";
 		this.previousSibling	= null;
+		this.nextSibling		= null;
 		this.semanticLevel		= "text";
 		
+		// Was our /real/ previous sibling culled on close?
+		// (This doesn't preclude us from having a .previousSibling - but
+		// in that case it simply refers to the previousSibling /after/ culling.)
+		this.prevSiblingCulled = false;
+		this.prevCulledSiblingState = null;
+		
+		// Same goes for next-sibling...
+		this.nextSiblingCulled = false;
+		this.nextCulledSiblingState = null;
+		
 		// Is this node mismatched?
-		this.mismatched			= false;
+		this.mismatched = false;
 	};
 	
 	// Helper function for escaping input...
@@ -752,6 +799,10 @@ function require(input) {
 		this.nodeDepth		= 0;
 		// Previous token ended with whitespace
 		this.whitespace		= false;
+		// Was the previous node culled (self-destructed by state genus?)
+		this.prevNodeCulled	= false;
+		// And the state of said node at cull-time:
+		this.prevCullState	= null;
 		
 		// Tokeniser state
 		this.characterIndex	= 0;
@@ -1059,6 +1110,10 @@ function require(input) {
 			// Storage for the return value of a processing function, and match functions
 			var returnVal = null, nodeInvalid = false, match, matchPoint = 0, matchLength = 0;
 			
+			// Mark that the previous node wasn't culled (we can put it back later, of course!)
+			state.prevNodeCulled = false;
+			state.prevCullState = null;
+			
 			// If we're not just closing this node because the parent node closed...
 			if (!parentNodeClosed) {
 				// Check where the token matched...
@@ -1099,7 +1154,25 @@ function require(input) {
 				// We save the return value, as we'll need it later...
 				returnVal = stateGenus.process.call(state,state.currentNode);
 				
-				if (returnVal === false) state.emit("nodeselfdestruct",state.currentNode);
+				// If the return value is false (explicitly) we consider this a request
+				// for self-destruction!
+				if (returnVal === false) {
+					// Emit the event.
+					state.emit("nodeselfdestruct",state.currentNode);
+					state.currentNode.culled = true;
+					// We record that we culled the node - and what its state was
+					state.prevNodeCulled = true;
+					state.prevCullState = state.currentNode.state;
+					
+					// We also take this opportunity to tell this node's previous sibling that we culled (this one.)
+					if (state.currentNode.previousSibling) {
+						state.currentNode.previousSibling.nextSiblingCulled = true;
+						state.currentNode.previousSibling.nextCulledSiblingState = state.currentNode.state;
+						
+						// Remove next-sibling reference!
+						state.currentNode.previousSibling.nextSibling = null;
+					}
+				}
 			}
 			
 			// If stateGenus.process returned an explicit false... and now that we've cleaned up...
@@ -1230,7 +1303,11 @@ function require(input) {
 					tmpDuckNode.depth		= state.nodeDepth;
 					tmpDuckNode.parent		= state.currentNode;
 					tmpDuckNode.wrapper		= tokenGenus.wrapper;
-					tmpDuckNode.token		= this.currentToken;
+					tmpDuckNode.token		= state.currentToken;
+					
+					// Some nodes need to know that their previous sibling was culled.
+					tmpDuckNode.prevSiblingCulled = state.prevNodeCulled;
+					tmpDuckNode.prevCulledSiblingState = state.prevCullState;
 					
 					if (tokenGenus.semanticLevel) {
 						tmpDuckNode.semanticLevel = tokenGenus.semanticLevel;
@@ -1254,6 +1331,11 @@ function require(input) {
 						if (tree.length) tmpDuckNode.previousSibling = tree[tree.length-1];
 					}
 					
+					if (tmpDuckNode.previousSibling) {
+						// Save the next-sibling value into the previous sibling!
+						tmpDuckNode.previousSibling.nextSibling = tmpDuckNode;
+					}
+					
 					// We're not the root element. Flush the current parse-buffer to the node children.
 					// Add our new temporary node as a child of the previous current node.
 					if (!!state.currentNode) {
@@ -1272,6 +1354,10 @@ function require(input) {
 					
 					// Set current node to our temporary node.
 					state.currentNode = tmpDuckNode;
+					
+					// Mark that the previous node wasn't culled (we can put it back later, of course!)
+					state.prevNodeCulled = false;
+					state.prevCullState = null;
 					
 					state.nodeDepth ++;
 					

@@ -112,4 +112,17 @@ describe("Feathers API",function() {
 		
 		parametersCorrect.should.be.true;
 	});
+	
+	it("should permit unencoded HTML to be returned from feathers",function() {
+		var Duckdown = new (require("../"))();
+		
+		Duckdown.registerFeather("testingfeather",function(){
+			return "<p><a>test</a></p>";
+		});
+		
+		Duckdown.parse("<testingfeather>");
+		var parseResult = Duckdown.compile();
+		
+		expect(parseResult).to.match(/<p><a>test<\/a><\/p>/g);
+	});
 });

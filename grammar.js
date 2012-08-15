@@ -651,6 +651,11 @@
 				
 				// Or just return.
 				return;
+			},
+			
+			// Compile, so our children aren't mercilessly escaped by the duckpiler.
+			"compile": function(node,compiler) {
+				return node.children.join("");
 			}
 		}
 	};

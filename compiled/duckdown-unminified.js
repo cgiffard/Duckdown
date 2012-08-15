@@ -3,7 +3,7 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Wed Aug 15 2012 11:24:02 GMT+1000 (EST)
+// Package built Wed Aug 15 2012 15:48:05 GMT+1000 (EST)
 // 
 
 
@@ -674,6 +674,11 @@ function require(input) {
 				
 				// Or just return.
 				return;
+			},
+			
+			// Compile, so our children aren't mercilessly escaped by the duckpiler.
+			"compile": function(node,compiler) {
+				return node.children.join("");
 			}
 		}
 	};

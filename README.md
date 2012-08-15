@@ -1,4 +1,4 @@
-Duckdown
+Duckdown [![Build Status](https://secure.travis-ci.org/cgiffard/Duckdown.png)](http://travis-ci.org/cgiffard/Duckdown)
 ========
 
 Ultra-simple Markdown-inspired markup language.

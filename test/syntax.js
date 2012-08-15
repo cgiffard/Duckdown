@@ -33,6 +33,15 @@ describe("Syntax test",function() {
 					if (error) throw error;
 					
 					referenceData = referenceData.toString();
+					
+					var referenceLines = referenceData.split(/\n/g);
+					var compiledLines = compiledData.split(/\n/g);
+					
+					// Break this up line by line, so we get nicer errors...
+					referenceLines.forEach(function(line,index) {
+						expect(compiledLines[index]).to.equal(line);
+					})
+					
 					expect(referenceData).to.equal(compiledData);
 					
 					done();

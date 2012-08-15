@@ -3,7 +3,6 @@
 /*globals require:true, process:true, console:true, __dirname:true*/
 
 (function() {
-	"use strict";
 	
 	var Duckdown	= require("./"),
 		PackageInfo	= require("./package.json"),
@@ -247,9 +246,10 @@
 				if (duck.verbose) {
 					for (var nodeFlag in node) {
 						if (node.hasOwnProperty(nodeFlag) &&
-							(typeof node[nodeFlag] === "boolean"||
-							 typeof node[nodeFlag] === "string" ||
-							 typeof node[nodeFlag] === "number" )) {
+							(
+								typeof node[nodeFlag] === "boolean"||
+								typeof node[nodeFlag] === "string" ||
+								typeof node[nodeFlag] === "number" )) {
 							
 							if (!!node[nodeFlag]) {
 								// Indent and get ready for printing token...

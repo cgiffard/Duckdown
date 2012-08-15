@@ -216,11 +216,15 @@
 	
 	Duckdown.prototype.completeParse = function() {
 		
-		while(!this.parserAST[this.parserAST.length-1].processed) {
-			var currentState = this.parserStates[this.parserStates.length-1],
-				stateGenus = Grammar.stateList[currentState];
+		if (this.parserAST.length) {
 			
-			this.closeCurrentNode(currentState,stateGenus,true);
+			while(this.parserAST[this.parserAST.length-1] && !this.parserAST[this.parserAST.length-1].processed) {
+				
+				var currentState = this.parserStates[this.parserStates.length-1],
+					stateGenus = Grammar.stateList[currentState];
+				
+				this.closeCurrentNode(currentState,stateGenus,true);
+			}
 		}
 		
 		// Emit parse-end event
@@ -734,7 +738,11 @@
 		// And if it's the parent node which is closing, we have no right to swallow its tokens!
 		
 		if (!parentNodeClosed) {
-			if (stateGenus.tokenGenus.swallowTokens !== false && !nodeInvalid && state.currentToken !== "\n") {
+			if ((
+					(stateGenus.tokenGenus.swallowTokens !== false && !nodeInvalid) || 
+					(!!stateGenus.tokenGenus.swallowWhitespace && match[0].match(/\s+/ig) && !nodeInvalid)
+				) && state.currentToken !== "\n") {
+				
 				// Remove the current match from the token, if we're permitted to swallow it...
 				state.currentToken = state.currentToken.substring(matchPoint+matchLength);
 				
@@ -748,7 +756,7 @@
 				state.currentToken = state.currentToken.substring(matchPoint);
 			}
 		}
-	}
+	};
 	
 	// Helper function to do a reverse-lookup to find token info from a state name.
 	// This function caches the lookup against the state object.

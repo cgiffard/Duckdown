@@ -142,6 +142,14 @@
 			"semanticLevel"		: "textblock",
 			"swallowTokens"		: false
 		},
+		// Bulletted list item...
+		"*\t": {
+			"wrapper"			: true,
+			"exit"				: /\n/i,
+			"state"				: "LIST_UNORDERED",
+			"semanticLevel"		: "textblock",
+			"swallowTokens"		: false
+		},
 		// Headings, 1 - 6
 		"h1.": {
 			"wrapper"			: true,
@@ -183,19 +191,25 @@
 		"http://": {
 			"wrapper"			: false,
 			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]\#]/i,
-			"validIf"			: /^http[s]?:\/\/[a-z0-9\-\.]+(\:\d+)?(\/.*)?$/i,
+			"validIf"			: /^http[s]?:\/\/[a-z0-9\-\.]+(\:\d+)?.*$/i,
 			"state"				: "AUTO_LINK",
 			// The exit condition matches the first _non_ link character, so we shouldn't swallow it.
 			"swallowTokens"		: false,
+			// But we should probably swallow whitespace - we can write it back out again if we're not followed
+			// by a PAREN_DESCRIPTOR after all.
+			"swallowWhitespace"	: true,
 			"semanticLevel"		: "text"
 		},
 		"https://": {
 			"wrapper"			: false,
 			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]\#]/i,
-			"validIf"			: /^http[s]?:\/\/[a-z0-9\-\.]+(\:\d+)?(\/.*)?$/i,
+			"validIf"			: /^http[s]?:\/\/[a-z0-9\-\.]+(\:\d+)?.*$/i,
 			"state"				: "AUTO_LINK",
 			// The exit condition matches the first _non_ link character, so we shouldn't swallow it.
 			"swallowTokens"		: false,
+			// But we should probably swallow whitespace - we can write it back out again if we're not followed
+			// by a PAREN_DESCRIPTOR after all.
+			"swallowWhitespace"	: true,
 			"semanticLevel"		: "text"
 		},
 		"(": {
@@ -335,9 +349,11 @@
 				var compilePreformatted = false;
 				
 				// If we don't have a parent element (not sure how that would happen...)
+				// Or we have a previous sibling...
 				// If we are the direct child of an implicit break
 				// or a block or hybrid element...
 				if (!node.parent							||
+					node.previousSibling					||
 					node.parent.state === "IMPLICIT_BREAK"	||
 					node.parent.semanticLevel === "block"	||
 					node.parent.semanticLevel === "hybrid"	) {
@@ -395,7 +411,35 @@
 				if (node.previousSibling) return -1;
 			},
 			"compile": function(node,compiler) {
-				return "<li>" + compiler(node) + "</li>";
+				var buffer = "";
+				
+				if (!node.parent.previousSibling ||
+					node.parent.prevSiblingCulled ||
+					!node.parent.previousSibling.blockParent ||
+					!node.parent.previousSibling.children.length || 
+					(
+						node.parent.previousSibling.children[0].state !== "LIST_UNORDERED" && 
+						node.parent.previousSibling.children[0].state !== "IMPLICIT_INDENT"
+					)) {
+					
+					buffer += "<ul>\n";
+				}
+				
+				buffer += "<li>" + compiler(node) + "</li>\n";
+				
+				if (!node.parent.nextSibling ||
+					node.parent.nextSiblingCulled ||
+					!node.parent.nextSibling.blockParent ||
+					!node.parent.nextSibling.children.length || 
+					(
+						node.parent.nextSibling.children[0].state !== "LIST_UNORDERED" && 
+						node.parent.nextSibling.children[0].state !== "IMPLICIT_INDENT"
+					)) {
+					
+					buffer += "</ul>\n";
+				}
+				
+				return buffer;
 			}
 		},
 		"HEADING_1": {
@@ -472,7 +516,11 @@
 					linkText = compiler(node.linkDetail);
 				}
 				
-				return "<a href=\"" + linkURL + "\">" + linkText + "</a>";
+				var buffer = "<a href=\"" + linkURL + "\">" + linkText + "</a>";
+				
+				if (node.exitToken.match(/\s+/) && !node.linkDetail) buffer += " ";
+				
+				return buffer;
 			}
 		},
 		"PAREN_DESCRIPTOR": {

@@ -3,7 +3,7 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Thu Aug 09 2012 11:27:03 GMT+1000 (EST)
+// Package built Wed Aug 15 2012 11:24:02 GMT+1000 (EST)
 // 
 
 
@@ -157,46 +157,56 @@ function require(input) {
 			"exit"				: /[`\n]/,
 			"state"				: "CODE_LITERAL"
 		},
+		// Bulletted list item...
+		"* ": {
+			"wrapper"			: true,
+			"exit"				: /\n/i,
+			"state"				: "LIST_UNORDERED",
+			"semanticLevel"		: "textblock",
+			"swallowTokens"		: false
+		},
+		// Bulletted list item...
+		"*\t": {
+			"wrapper"			: true,
+			"exit"				: /\n/i,
+			"state"				: "LIST_UNORDERED",
+			"semanticLevel"		: "textblock",
+			"swallowTokens"		: false
+		},
 		// Headings, 1 - 6
 		"h1.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
 			"state"				: "HEADING_1",
 			"semanticLevel"		: "textblock"
 		},
 		"h2.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
 			"state"				: "HEADING_2",
 			"semanticLevel"		: "textblock"
 		},
 		"h3.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
 			"state"				: "HEADING_3",
 			"semanticLevel"		: "textblock"
 		},
 		"h4.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
 			"state"				: "HEADING_4",
 			"semanticLevel"		: "textblock"
 		},
 		"h5.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
 			"state"				: "HEADING_5",
 			"semanticLevel"		: "textblock"
 		},
 		"h6.": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
-			// "validIf"			: /^h\d\.\s[^\n]+$/ig,
 			"state"				: "HEADING_6",
 			"semanticLevel"		: "textblock"
 		},
@@ -204,19 +214,25 @@ function require(input) {
 		"http://": {
 			"wrapper"			: false,
 			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]\#]/i,
-			"validIf"			: /^http[s]?:\/\/[a-z0-9\-]+(\:\d+)?.*$/i,
+			"validIf"			: /^http[s]?:\/\/[a-z0-9\-\.]+(\:\d+)?.*$/i,
 			"state"				: "AUTO_LINK",
 			// The exit condition matches the first _non_ link character, so we shouldn't swallow it.
 			"swallowTokens"		: false,
+			// But we should probably swallow whitespace - we can write it back out again if we're not followed
+			// by a PAREN_DESCRIPTOR after all.
+			"swallowWhitespace"	: true,
 			"semanticLevel"		: "text"
 		},
 		"https://": {
 			"wrapper"			: false,
 			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]\#]/i,
-			"validIf"			: /^http[s]?:\/\/[a-z0-9\-]+(\:\d+)?.*$/i,
+			"validIf"			: /^http[s]?:\/\/[a-z0-9\-\.]+(\:\d+)?.*$/i,
 			"state"				: "AUTO_LINK",
 			// The exit condition matches the first _non_ link character, so we shouldn't swallow it.
 			"swallowTokens"		: false,
+			// But we should probably swallow whitespace - we can write it back out again if we're not followed
+			// by a PAREN_DESCRIPTOR after all.
+			"swallowWhitespace"	: true,
 			"semanticLevel"		: "text"
 		},
 		"(": {
@@ -319,18 +335,17 @@ function require(input) {
 					
 					// Alternately, if the next sibling is a block parent of another variety...
 					// That is - it contains a block level element like a list item, blockquote, etc.
-					if (node.nextSibling && node.nextSibling.blockParent) {
+					// Or, it has no children, meaning it'll be culled.
+					if (node.nextSibling && (node.nextSibling.blockParent || !node.nextSibling.children.length)) {
 						
 						closeParagraph = true;
 					}
 					
-					
-					if (node.nextSibling && !closeParagraph) {
-						console.log(node);
-					}
+					// Don't want to append a space to the buffer if it finishes with one already.
+					var finalSpace = buffer.match(/\s+$/i) ? "" : " ";
 					
 					if (openParagraph) buffer = "<p>" + buffer;
-					buffer += closeParagraph ? "</p>\n" : " ";
+					buffer += closeParagraph ? "</p>\n" : finalSpace;
 					
 					return buffer;
 				} else {
@@ -357,9 +372,11 @@ function require(input) {
 				var compilePreformatted = false;
 				
 				// If we don't have a parent element (not sure how that would happen...)
+				// Or we have a previous sibling...
 				// If we are the direct child of an implicit break
 				// or a block or hybrid element...
 				if (!node.parent							||
+					node.previousSibling					||
 					node.parent.state === "IMPLICIT_BREAK"	||
 					node.parent.semanticLevel === "block"	||
 					node.parent.semanticLevel === "hybrid"	) {
@@ -412,9 +429,48 @@ function require(input) {
 				return "<code>" + node.text() + "</code>";
 			}
 		},
+		"LIST_UNORDERED": {
+			"process": function(node) {
+				if (node.previousSibling) return -1;
+			},
+			"compile": function(node,compiler) {
+				var buffer = "";
+				
+				if (!node.parent.previousSibling ||
+					node.parent.prevSiblingCulled ||
+					!node.parent.previousSibling.blockParent ||
+					!node.parent.previousSibling.children.length || 
+					(
+						node.parent.previousSibling.children[0].state !== "LIST_UNORDERED" && 
+						node.parent.previousSibling.children[0].state !== "IMPLICIT_INDENT"
+					)) {
+					
+					buffer += "<ul>\n";
+				}
+				
+				buffer += "<li>" + compiler(node) + "</li>\n";
+				
+				if (!node.parent.nextSibling ||
+					node.parent.nextSiblingCulled ||
+					!node.parent.nextSibling.blockParent ||
+					!node.parent.nextSibling.children.length || 
+					(
+						node.parent.nextSibling.children[0].state !== "LIST_UNORDERED" && 
+						node.parent.nextSibling.children[0].state !== "IMPLICIT_INDENT"
+					)) {
+					
+					buffer += "</ul>\n";
+				}
+				
+				return buffer;
+			}
+		},
 		"HEADING_1": {
 			"process": function(node) {
-				if (node.previousSibling) return false;
+				// A return value of -1 leaves the components of a self-destructed token
+				// in the document as plain text - whereas a false return value culls it
+				// from the document.
+				if (node.previousSibling) return -1;
 			},
 			"compile": function(node,compiler) {
 				return "<h1>" + compiler(node) + "</h1>";
@@ -422,7 +478,7 @@ function require(input) {
 		},
 		"HEADING_2": {
 			"process": function(node) {
-				if (node.previousSibling) return false;
+				if (node.previousSibling) return -1;
 			},
 			"compile": function(node,compiler) {
 				return "<h2>" + compiler(node) + "</h2>";
@@ -430,7 +486,7 @@ function require(input) {
 		},
 		"HEADING_3": {
 			"process": function(node) {
-				if (node.previousSibling) return false;
+				if (node.previousSibling) return -1;
 			},
 			"compile": function(node,compiler) {
 				return "<h3>" + compiler(node) + "</h3>";
@@ -438,7 +494,7 @@ function require(input) {
 		},
 		"HEADING_4": {
 			"process": function(node) {
-				if (node.previousSibling) return false;
+				if (node.previousSibling) return -1;
 			},
 			"compile": function(node,compiler) {
 				return "<h4>" + compiler(node) + "</h4>";
@@ -446,7 +502,7 @@ function require(input) {
 		},
 		"HEADING_5": {
 			"process": function(node) {
-				if (node.previousSibling) return false;
+				if (node.previousSibling) return -1;
 			},
 			"compile": function(node,compiler) {
 				return "<h5>" + compiler(node) + "</h5>";
@@ -454,7 +510,7 @@ function require(input) {
 		},
 		"HEADING_6": {
 			"process": function(node) {
-				if (node.previousSibling) return false;
+				if (node.previousSibling) return -1;
 			},
 			"compile": function(node,compiler) {
 				return "<h6>" + compiler(node) + "</h6>";
@@ -483,7 +539,11 @@ function require(input) {
 					linkText = compiler(node.linkDetail);
 				}
 				
-				return "<a href=\"" + linkURL + "\">" + linkText + "</a>";
+				var buffer = "<a href=\"" + linkURL + "\">" + linkText + "</a>";
+				
+				if (node.exitToken.match(/\s+/) && !node.linkDetail) buffer += " ";
+				
+				return buffer;
 			}
 		},
 		"PAREN_DESCRIPTOR": {
@@ -648,11 +708,11 @@ function require(input) {
 		this.wrapper			= true;
 		this.token				= "";
 		this.exitToken			= "";
-		this.textCache			= "";
-		this.rawCache			= "";
 		this.previousSibling	= null;
 		this.nextSibling		= null;
 		this.semanticLevel		= "text";
+		// Track whether this node has been processed before compilation...
+		this.processed			= false;
 		
 		// Was our /real/ previous sibling culled on close?
 		// (This doesn't preclude us from having a .previousSibling - but
@@ -663,6 +723,10 @@ function require(input) {
 		// Same goes for next-sibling...
 		this.nextSiblingCulled = false;
 		this.nextCulledSiblingState = null;
+		
+		// Caching for quickly returning text, etc.
+		this.textCache = "";
+		this.rawCache = "";
 		
 		// Is this node mismatched?
 		this.mismatched = false;
@@ -961,10 +1025,27 @@ function require(input) {
 			this.parseToken(this,null);
 		}
 		
-		// Emit parse-end event
-		this.emit("parseend");
+		// Complete Duckdown parse...
+		this.completeParse();
 		
 		return this.parserAST;
+	};
+	
+	Duckdown.prototype.completeParse = function() {
+		
+		if (this.parserAST.length) {
+			
+			while(this.parserAST[this.parserAST.length-1] && !this.parserAST[this.parserAST.length-1].processed) {
+				
+				var currentState = this.parserStates[this.parserStates.length-1],
+					stateGenus = Grammar.stateList[currentState];
+				
+				this.closeCurrentNode(currentState,stateGenus,true);
+			}
+		}
+		
+		// Emit parse-end event
+		this.emit("parseend");
 	};
 	
 	Duckdown.prototype.parseToken = function(state, input) {
@@ -998,33 +1079,6 @@ function require(input) {
 			if (tokenInfo) return tokenInfo.wrapper;
 			
 			// We couldn't find the wrapping information. Default to false.
-			return false;
-		}
-		
-		// Helper function to do a reverse-lookup to find token info from a state name.
-		// This function caches the lookup against the state object.
-		function lookupTokenForState(stateName) {
-			// If the state we've been requested to locate the token for doesn't even exist,
-			// we've got no choice but to bail out.
-			if (!Grammar.stateList[stateName]) return false;
-			
-			// If we've already cached the link, return that instead.
-			if (!!Grammar.stateList[stateName].tokenGenus) return Grammar.stateList[stateName].tokenGenus;
-			
-			// Uncached? Commence a manual lookup.
-			for (var token in Grammar.tokenMappings) {
-				if (Grammar.tokenMappings.hasOwnProperty(token) &&
-					Grammar.tokenMappings[token].state === currentState) {
-					
-					// Cache our discovery...
-					Grammar.stateList[stateName].tokenGenus = Grammar.tokenMappings[token];
-					
-					// We found it. Return.
-					return Grammar.tokenMappings[token];
-				}
-			}
-			
-			// We couldn't locate the token. Whoops.
 			return false;
 		}
 		
@@ -1104,137 +1158,6 @@ function require(input) {
 			return true;
 		}
 		
-		// Function for closing nodes...
-		function closeCurrentNode(currentState,stateGenus,parentNodeClosed) {
-			
-			// Storage for the return value of a processing function, and match functions
-			var returnVal = null, nodeInvalid = false, match, matchPoint = 0, matchLength = 0;
-			
-			// Mark that the previous node wasn't culled (we can put it back later, of course!)
-			state.prevNodeCulled = false;
-			state.prevCullState = null;
-			
-			// If we're not just closing this node because the parent node closed...
-			if (!parentNodeClosed) {
-				// Check where the token matched...
-				// (show me where on the doll where the token matched you!)
-				match = stateGenus.exitCondition.exec(state.currentToken);
-				matchPoint = match.index;
-				matchLength = match[0] ? match[0].length : 0;
-				
-				// If the match point wasn't zero, we'll use it to divide the current token,
-				// and push the first part onto the current node's child list
-				if (matchPoint > 0) {
-					// Push the chunk of the current token (before the match point)
-					// onto the parser buffer to be dealt with, just like all the other baby tokens (awww)
-					state.parseBuffer.push(state.currentToken.substr(0,matchPoint));
-				}
-				
-				// Save exit-token
-				state.currentNode.exitToken = match[0];
-			}
-			
-			// Add the current parse buffer to its child list.
-			state.currentNode.children.push.apply(state.currentNode.children,state.parseBuffer);
-			
-			// If we've got a valid-check for this token genus...
-			if (tmpTokenGenus && tmpTokenGenus.validIf instanceof RegExp) {
-				
-				// Check whether current node is valid against text-match requirement (if applicable)
-				if (!tmpTokenGenus.validIf.exec(state.currentNode.raw())) {
-					state.emit("nodeinvalid",state.currentNode);
-					nodeInvalid = true;
-				}
-			}
-			
-			// Does our state genus define a processing function?
-			// (don't execute this function if the node has been found to be invalid)
-			if (!nodeInvalid && stateGenus.process && stateGenus.process instanceof Function) {
-				
-				// We save the return value, as we'll need it later...
-				returnVal = stateGenus.process.call(state,state.currentNode);
-				
-				// If the return value is false (explicitly) we consider this a request
-				// for self-destruction!
-				if (returnVal === false) {
-					// Emit the event.
-					state.emit("nodeselfdestruct",state.currentNode);
-					state.currentNode.culled = true;
-					// We record that we culled the node - and what its state was
-					state.prevNodeCulled = true;
-					state.prevCullState = state.currentNode.state;
-					
-					// We also take this opportunity to tell this node's previous sibling that we culled (this one.)
-					if (state.currentNode.previousSibling) {
-						state.currentNode.previousSibling.nextSiblingCulled = true;
-						state.currentNode.previousSibling.nextCulledSiblingState = state.currentNode.state;
-						
-						// Remove next-sibling reference!
-						state.currentNode.previousSibling.nextSibling = null;
-					}
-				}
-			}
-			
-			// If stateGenus.process returned an explicit false... and now that we've cleaned up...
-			// then we assume we're to destroy this node immediately
-			// This is useful for, say, culling empty paragraphs, etc.
-			if (returnVal === false || nodeInvalid) {
-				tree = (state.currentNode.parent ? state.currentNode.parent.children : state.parserAST);
-				
-				// Simply remove it by truncating the length of the current AST scope
-				tree.length --;
-				
-				// If the node is invalid, plonk the contents of said node back in the current tree,
-				// (after removing ourselves from it)
-				if (nodeInvalid) {
-					tree.push.apply(tree,[state.currentNode.token].concat(state.currentNode.children));
-				}
-			}
-			
-			// And clear the parse buffer...
-			state.parseBuffer = [];
-			
-			// Emit the nodeclosed event before we loose the current node pointer...
-			state.emit("nodeclosed",state.currentNode);
-			
-			// Save the pointer to the previous node, if the node isn't being thrown out.
-			if (!nodeInvalid && returnVal !== false) state.prevNode = state.currentNode;
-			
-			// Set our new current node to the parent node of the previously current node
-			state.currentNode = state.currentNode.parent;
-			
-			// Decrement node depth
-			state.nodeDepth --;
-			
-			// Truncate parser state stack...
-			state.parserStates.length = state.nodeDepth;
-			
-			// Finally, do we swallow any token components that match?
-			// Check the state genus and act accordingly. If we destroy the token components, 
-			// we just return. Otherwise, allow processing to continue based on the current token.
-			
-			// If the node was marked as invalid, the exit token will be already present in the
-			// buffer. So we swallow it anyway...
-			
-			// And if it's the parent node which is closing, we have no right to swallow its tokens!
-			
-			if (!parentNodeClosed) {
-				if (stateGenus.tokenGenus.swallowTokens !== false && !nodeInvalid) {
-					// Remove the current match from the token, if we're permitted to swallow it...
-					state.currentToken = state.currentToken.substring(matchPoint+matchLength);
-					
-					// After swallowing the exit condition, is there anything left to chew on? Return if not.
-					if (!state.currentToken.length) return;
-					
-				} else if (matchPoint > 0) {
-					// We're not swallowing tokens. But if the match point was greater than zero,
-					// there'll be a duplicate token in there - which wasn't the exit token.
-					
-					state.currentToken = state.currentToken.substring(matchPoint);
-				}
-			}
-		}
-		
 		// Search our current state list for exit conditions, closing nodes where necessary
 		for (var stateIndex = state.parserStates.length - 1; stateIndex >= 0; stateIndex--) {
 			
@@ -1263,11 +1186,11 @@ function require(input) {
 					// We'll leave it up to the state genus can determine what to do if
 					// it's mismatched - we're not going to be presumptuous!
 					state.currentNode.mismatched = true;
-					closeCurrentNode(currentState,stateGenus,true);
+					state.closeCurrentNode(true);
 				}
 				
 				// And now close the actual node we're supposed to be listening for...
-				closeCurrentNode(currentState,stateGenus);
+				state.closeCurrentNode();
 			}
 		}
 		
@@ -1496,7 +1419,188 @@ function require(input) {
 	};
 	
 	
+	// Helper function for closing the current node - not part of externally available API.
+	// Function for closing nodes...
+	Duckdown.prototype.closeCurrentNode = function(parentNodeClosed) {
+		var currentState = this.parserStates[this.parserStates.length-1],
+			stateGenus = Grammar.stateList[currentState];
+		
+		var state = this, tmpTokenGenus = {}, tree = null;
+		
+		// Get the token genus...
+		tmpTokenGenus = lookupTokenForState(currentState);
+		
+		// Storage for the return value of a processing function, and match functions
+		var returnVal = null, nodeInvalid = false, match, matchPoint = 0, matchLength = 0;
+		
+		// Mark that the previous node wasn't culled (we can put it back later, of course!)
+		state.prevNodeCulled = false;
+		state.prevCullState = null;
+		
+		// If we're not just closing this node because the parent node closed...
+		if (!parentNodeClosed) {
+			// Check where the token matched...
+			// (show me where on the doll where the token matched you!)
+			match = stateGenus.exitCondition.exec(state.currentToken);
+			matchPoint = match.index;
+			matchLength = match[0] ? match[0].length : 0;
+			
+			// If the match point wasn't zero, we'll use it to divide the current token,
+			// and push the first part onto the current node's child list
+			if (matchPoint > 0) {
+				// Push the chunk of the current token (before the match point)
+				// onto the parser buffer to be dealt with, just like all the other baby tokens (awww)
+				state.parseBuffer.push(state.currentToken.substr(0,matchPoint));
+			}
+			
+			// Save exit-token
+			state.currentNode.exitToken = match[0];
+		}
+		
+		// Add the current parse buffer to its child list.
+		state.currentNode.children.push.apply(state.currentNode.children,state.parseBuffer);
+		
+		// If we've got a valid-check for this token genus...
+		if (tmpTokenGenus && tmpTokenGenus.validIf instanceof RegExp) {
+			
+			// Check whether current node is valid against text-match requirement (if applicable)
+			if (!tmpTokenGenus.validIf.exec(state.currentNode.raw())) {
+				state.emit("nodeinvalid",state.currentNode);
+				nodeInvalid = true;
+			}
+		}
+		
+		// Does our state genus define a processing function?
+		// (don't execute this function if the node has been found to be invalid)
+		if (!nodeInvalid && stateGenus.process && stateGenus.process instanceof Function) {
+			
+			// We save the return value, as we'll need it later...
+			returnVal = stateGenus.process.call(state,state.currentNode);
+			
+			// If the return value is false (explicitly) we consider this a request
+			// for self-destruction!
+			if (returnVal === false) {
+				// Emit the event.
+				state.emit("nodeselfdestruct",state.currentNode);
+				state.currentNode.culled = true;
+				// We record that we culled the node - and what its state was
+				state.prevNodeCulled = true;
+				state.prevCullState = state.currentNode.state;
+				
+				// We also take this opportunity to tell this node's previous sibling that we culled (this one.)
+				if (state.currentNode.previousSibling) {
+					state.currentNode.previousSibling.nextSiblingCulled = true;
+					state.currentNode.previousSibling.nextCulledSiblingState = state.currentNode.state;
+					
+					// Remove next-sibling reference!
+					state.currentNode.previousSibling.nextSibling = null;
+				}
+			}
+			
+			// OK, well if the return value wasn't explicitly false, maybe it was -1.
+			// A -1 return value instructs duckdown to invalidate the node, leaving its
+			// components in the document as plain text.
+			if (returnVal === -1) {
+				state.emit("nodeinvalid",state.currentNode);
+				nodeInvalid = true;
+			}
+		}
+		
+		// Mark the node as processed. Whether it has a state processor or not.
+		state.currentNode.processed = true;
+		
+		// If stateGenus.process returned an explicit false... and now that we've cleaned up...
+		// then we assume we're to destroy this node immediately
+		// This is useful for, say, culling empty paragraphs, etc.
+		if (returnVal === false || nodeInvalid) {
+			tree = (state.currentNode.parent ? state.currentNode.parent.children : state.parserAST);
+			
+			// Simply remove it by truncating the length of the current AST scope
+			tree.length --;
+			
+			// If the node is invalid, plonk the contents of said node back in the current tree,
+			// (after removing ourselves from it)
+			if (nodeInvalid) {
+				tree.push.apply(tree,[state.currentNode.token].concat(state.currentNode.children));
+			}
+		}
+		
+		// And clear the parse buffer...
+		state.parseBuffer = [];
+		
+		// Emit the nodeclosed event before we loose the current node pointer...
+		state.emit("nodeclosed",state.currentNode);
+		
+		// Save the pointer to the previous node, if the node isn't being thrown out.
+		if (!nodeInvalid && returnVal !== false) state.prevNode = state.currentNode;
+		
+		// Set our new current node to the parent node of the previously current node
+		state.currentNode = state.currentNode.parent;
+		
+		// Decrement node depth
+		state.nodeDepth --;
+		
+		// Truncate parser state stack...
+		state.parserStates.length = state.nodeDepth;
+		
+		// Finally, do we swallow any token components that match?
+		// Check the state genus and act accordingly. If we destroy the token components, 
+		// we just return. Otherwise, allow processing to continue based on the current token.
+		
+		// We never swallow newline tokens.
+		
+		// If the node was marked as invalid, the exit token will be already present in the
+		// buffer. So we swallow it anyway...
+		
+		// And if it's the parent node which is closing, we have no right to swallow its tokens!
+		
+		if (!parentNodeClosed) {
+			if ((
+					(stateGenus.tokenGenus.swallowTokens !== false && !nodeInvalid) || 
+					(!!stateGenus.tokenGenus.swallowWhitespace && match[0].match(/\s+/ig) && !nodeInvalid)
+				) && state.currentToken !== "\n") {
+				
+				// Remove the current match from the token, if we're permitted to swallow it...
+				state.currentToken = state.currentToken.substring(matchPoint+matchLength);
+				
+				// After swallowing the exit condition, is there anything left to chew on? Return if not.
+				if (!state.currentToken.length) return;
+				
+			} else if (matchPoint > 0) {
+				// We're not swallowing tokens. But if the match point was greater than zero,
+				// there'll be a duplicate token in there - which wasn't the exit token.
+				
+				state.currentToken = state.currentToken.substring(matchPoint);
+			}
+		}
+	};
 	
+	// Helper function to do a reverse-lookup to find token info from a state name.
+	// This function caches the lookup against the state object.
+	function lookupTokenForState(stateName) {
+		// If the state we've been requested to locate the token for doesn't even exist,
+		// we've got no choice but to bail out.
+		if (!Grammar.stateList[stateName]) return false;
+		
+		// If we've already cached the link, return that instead.
+		if (!!Grammar.stateList[stateName].tokenGenus) return Grammar.stateList[stateName].tokenGenus;
+		
+		// Uncached? Commence a manual lookup.
+		for (var token in Grammar.tokenMappings) {
+			if (Grammar.tokenMappings.hasOwnProperty(token) &&
+				Grammar.tokenMappings[token].state === stateName) {
+				
+				// Cache our discovery...
+				Grammar.stateList[stateName].tokenGenus = Grammar.tokenMappings[token];
+				
+				// We found it. Return.
+				return Grammar.tokenMappings[token];
+			}
+		}
+		
+		// We couldn't locate the token. Whoops.
+		return false;
+	}
 	
 	// Compile AST to default format when coercing Duckdown to string...
 	Duckdown.prototype.toString = function() {

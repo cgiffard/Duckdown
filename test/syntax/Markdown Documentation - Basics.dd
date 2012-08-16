@@ -33,7 +33,7 @@ To create an atx-style header, you put 1-6 hash marks (#) at the
 beginning of the line -- the number of hashes equals the resulting
 HTML header level.
 
-Blockquotes are indicated using email-style '>' angle brackets.
+Blockquotes are indicated using email-style '`>`' angle brackets.
 
 h3. Phrase Emphasis
 

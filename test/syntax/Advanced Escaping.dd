@@ -4,8 +4,6 @@ Here's a test with some higher-order unicode characters to escape...
 
 Given we're dealing almost exclusively with english it's probably OK to escape 言葉 like この言葉。
 
-Here's some emoji: 😭😤🌟💫💥💢👥💬💭
-
 Here's some currency characters: $€¥¢£₨
 
 Here's some arrows: ☚⇝⇥⇡⇞⥥⬇⬆⬅➡

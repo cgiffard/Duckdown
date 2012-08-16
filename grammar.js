@@ -150,6 +150,14 @@
 			"semanticLevel"		: "textblock",
 			"swallowTokens"		: false
 		},
+		// Blockquote
+		">": {
+			"wrapper"			: true,
+			"exit"				: /\n/i,
+			"state"				: "BLOCKQUOTE",
+			"semanticLevel"		: "block",
+			"swallowTokens"		: false
+		},
 		// Headings, 1 - 6
 		"h1.": {
 			"wrapper"			: true,
@@ -392,6 +400,18 @@
 			}
 		},
 		"TEXT_DEL": {
+			"process": function(node) {
+				// If we're the first element in our parent node, we're not part of a phrase like
+				// "We waited over 6-7 minutes" which can cause problems with this token genus.
+				if (!node.previousSibling) return true;
+				
+				// If we're preceded by whitespace, consider our starting token valid.
+				if (typeof node.previousSibling === "string" && node.previousSibling.match(/\s+$/)) return true;
+				
+				// Otherwise, dump our children back into the AST.
+				return -1;
+			},
+			
 			"compile": function(node,compiler) {
 				return "<del>" + compiler(node) + "</del>";
 			}
@@ -437,6 +457,42 @@
 					)) {
 					
 					buffer += "</ul>\n";
+				}
+				
+				return buffer;
+			}
+		},
+		"BLOCKQUOTE": {
+			"process": function(node) {
+				if (node.previousSibling) return -1;
+			},
+			"compile": function(node,compiler) {
+				var buffer = "";
+				
+				if (!node.parent.previousSibling ||
+					node.parent.prevSiblingCulled ||
+					!node.parent.previousSibling.blockParent ||
+					!node.parent.previousSibling.children.length || 
+					(
+						node.parent.previousSibling.children[0].state !== "BLOCKQUOTE" && 
+						node.parent.previousSibling.children[0].state !== "IMPLICIT_INDENT"
+					)) {
+					
+					buffer += "<blockquote>\n";
+				}
+				
+				buffer += compiler(node) + "\n";
+				
+				if (!node.parent.nextSibling ||
+					node.parent.nextSiblingCulled ||
+					!node.parent.nextSibling.blockParent ||
+					!node.parent.nextSibling.children.length || 
+					(
+						node.parent.nextSibling.children[0].state !== "BLOCKQUOTE" && 
+						node.parent.nextSibling.children[0].state !== "IMPLICIT_INDENT"
+					)) {
+					
+					buffer += "</blockquote>\n";
 				}
 				
 				return buffer;
@@ -570,14 +626,11 @@
 			"process": function(featherNode) {
 				
 				// If there's no children, there's nothing to go on. Die.
-				if (!featherNode.children.length) return;
+				if (!featherNode.children.length) return -1;
 				
 				// Feathers treat tokens differently.
 				// Join and re-split tokens by whitespace...
 				var featherTokens = featherNode.children.join("").split(/\s+/ig);
-				
-				// Now clear children from the node, because we'll replace them soon...
-				featherNode.children = [];
 				
 				// Storage for feather name
 				var featherName = featherTokens.shift().replace(/\s+/ig,"");
@@ -586,11 +639,14 @@
 				var parameterHash = {};
 				
 				// If we couldn't get a feather name, there's no point continuing.
-				if (!featherName.length) return;
+				if (!featherName.length) return -1;
 				
 				// And if the feather name exists and is a function...
 				if (this.feathers[featherName] && this.feathers[featherName] instanceof Object &&
 					this.feathers[featherName].handler && this.feathers[featherName].handler instanceof Function) {
+					
+					// Now clear children from the node, because we'll replace them soon...
+					featherNode.children = [];
 					
 					// Parse the feather parameters
 					var featherState = 0; // Waiting for parameter name
@@ -648,10 +704,13 @@
 						
 						featherNode.children = [returnedData];
 					}
+					
+					// Return.
+					return;
 				}
 				
 				// Or just return.
-				return;
+				return -1;
 			},
 			
 			// Compile, so our children aren't mercilessly escaped by the duckpiler.

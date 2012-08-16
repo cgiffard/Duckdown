@@ -3,7 +3,7 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Wed Aug 15 2012 15:48:05 GMT+1000 (EST)
+// Package built Thu Aug 16 2012 12:00:23 GMT+1000 (EST)
 // 
 
 
@@ -612,7 +612,8 @@ function require(input) {
 				if (!featherName.length) return;
 				
 				// And if the feather name exists and is a function...
-				if (this.feathers[featherName] && this.feathers[featherName] instanceof Function) {
+				if (this.feathers[featherName] && this.feathers[featherName] instanceof Object &&
+					this.feathers[featherName].handler && this.feathers[featherName].handler instanceof Function) {
 					
 					// Parse the feather parameters
 					var featherState = 0; // Waiting for parameter name
@@ -657,7 +658,7 @@ function require(input) {
 					}
 					
 					// Call the feather, get the result!
-					var returnedData = this.feathers[featherName](parameterHash);
+					var returnedData = this.feathers[featherName].handler.call(featherNode,parameterHash,this);
 					
 					// Mark as compiled!
 					featherNode.compiled = true;
@@ -1614,16 +1615,33 @@ function require(input) {
 	
 	// Feather functions...
 	
-	Duckdown.prototype.registerFeather = function(name,callback) {
+	Duckdown.prototype.registerFeather = function(name,callback,semanticLevel) {
+		var allowedFeatherSemantics = {"text":1,"textblock":1,"block":1,"hybrid":1};
+		
+		// Default semantic for unspecified feathers
+		semanticLevel = !!semanticLevel ? semanticLevel : "block";
 		
 		// Ensure a few key conditions are met...
-		if (!name.match(/^[a-z0-9]+$/))						throw new Error("Feather names must consist of lowercase letters and numbers only.");
-		if (this.feathers[name])							throw new Error("A feather with the specified name already exists.");
-		if (!(callback && callback instanceof Function))	throw new Error("You must provide a function for processing the feather output.");
+		if (!name.match(/^[a-z0-9]+$/))
+			throw new Error("Feather names must consist of lowercase letters and numbers only.");
 		
+		if (this.feathers[name])
+			throw new Error("A feather with the specified name already exists.");
 		
+		if (!(callback && callback instanceof Function))
+			throw new Error("You must provide a function for processing the feather output.");
+		
+		if (!(semanticLevel in allowedFeatherSemantics))
+			throw new Error("Feather semantic level must be one of (text|textblock|block|hybrid)");
+		
+		// Emit event...
 		this.emit("registerfeather",name,callback);
-		this.feathers[name] = callback;
+		
+		// Save feather
+		this.feathers[name] = {
+			handler: callback,
+			semanticLevel: semanticLevel
+		};
 	};
 	
 	Duckdown.prototype.unregisterFeather = function(name) {

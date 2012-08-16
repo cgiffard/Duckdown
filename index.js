@@ -792,16 +792,33 @@
 	
 	// Feather functions...
 	
-	Duckdown.prototype.registerFeather = function(name,callback) {
+	Duckdown.prototype.registerFeather = function(name,callback,semanticLevel) {
+		var allowedFeatherSemantics = {"text":1,"textblock":1,"block":1,"hybrid":1};
+		
+		// Default semantic for unspecified feathers
+		semanticLevel = !!semanticLevel ? semanticLevel : "block";
 		
 		// Ensure a few key conditions are met...
-		if (!name.match(/^[a-z0-9]+$/))						throw new Error("Feather names must consist of lowercase letters and numbers only.");
-		if (this.feathers[name])							throw new Error("A feather with the specified name already exists.");
-		if (!(callback && callback instanceof Function))	throw new Error("You must provide a function for processing the feather output.");
+		if (!name.match(/^[a-z0-9]+$/))
+			throw new Error("Feather names must consist of lowercase letters and numbers only.");
 		
+		if (this.feathers[name])
+			throw new Error("A feather with the specified name already exists.");
 		
+		if (!(callback && callback instanceof Function))
+			throw new Error("You must provide a function for processing the feather output.");
+		
+		if (!(semanticLevel in allowedFeatherSemantics))
+			throw new Error("Feather semantic level must be one of (text|textblock|block|hybrid)");
+		
+		// Emit event...
 		this.emit("registerfeather",name,callback);
-		this.feathers[name] = callback;
+		
+		// Save feather
+		this.feathers[name] = {
+			handler: callback,
+			semanticLevel: semanticLevel
+		};
 	};
 	
 	Duckdown.prototype.unregisterFeather = function(name) {

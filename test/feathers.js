@@ -118,11 +118,39 @@ describe("Feathers API",function() {
 		
 		Duckdown.registerFeather("testingfeather",function(){
 			return "<p><a>test</a></p>";
-		});
+		},"block");
 		
 		Duckdown.parse("<testingfeather>");
 		var parseResult = Duckdown.compile();
 		
 		expect(parseResult).to.match(/<p><a>test<\/a><\/p>/g);
+	});
+	
+	it("should provide access to the feather node via `this`",function() {
+		var Duckdown = new (require("../"))();
+		var accessCorrect = false;
+		
+		Duckdown.registerFeather("testingfeather",function(){
+			if (this && this.state && this.state === "SPECIAL_FEATHER")
+				accessCorrect = true;
+		});
+		
+		Duckdown.parse("<testingfeather>");
+		
+		expect(accessCorrect).to.be.true;
+	});
+	
+	it("should provide access to the Duckdown compiler via the second feather-handler argument",function() {
+		var Duckdown = new (require("../"))();
+		var accessCorrect = false;
+		
+		Duckdown.registerFeather("testingfeather",function(input,duckdown){
+			if (duckdown && duckdown === Duckdown)
+				accessCorrect = true;
+		});
+		
+		Duckdown.parse("<testingfeather>");
+		
+		expect(accessCorrect).to.be.true;
 	});
 });

@@ -589,7 +589,8 @@
 				if (!featherName.length) return;
 				
 				// And if the feather name exists and is a function...
-				if (this.feathers[featherName] && this.feathers[featherName] instanceof Function) {
+				if (this.feathers[featherName] && this.feathers[featherName] instanceof Object &&
+					this.feathers[featherName].handler && this.feathers[featherName].handler instanceof Function) {
 					
 					// Parse the feather parameters
 					var featherState = 0; // Waiting for parameter name
@@ -634,7 +635,7 @@
 					}
 					
 					// Call the feather, get the result!
-					var returnedData = this.feathers[featherName](parameterHash);
+					var returnedData = this.feathers[featherName].handler.call(featherNode,parameterHash,this);
 					
 					// Mark as compiled!
 					featherNode.compiled = true;

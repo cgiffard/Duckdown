@@ -34,5 +34,8 @@
     "index.js"
   ],
   "optionalDependencies": {},
-  "public": false
+  "public": false,
+  "keywords": [
+    "markdown", "language", "text", "duck", "duckdown", "ast", "compiler", "tokeniser", "feather", "feathers"
+  ]
 }

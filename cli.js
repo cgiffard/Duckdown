@@ -181,7 +181,7 @@
 				break;
 				
 			case "nodeinvalid":
-				log("Node was marked as invalid: " + args[0].raw());
+				log("Node was marked as invalid: " + args[0].raw(),args[1]);
 				break;
 			
 			case "compilestart":

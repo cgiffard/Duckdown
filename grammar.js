@@ -151,13 +151,28 @@
 			"semanticLevel"		: "textblock",
 			"swallowTokens"		: false
 		},
+		". ": {
+			"wrapper"			: true,
+			"exit"				: /\n/i,
+			"state"				: "LIST_ORDERED",
+			"semanticLevel"		: "textblock",
+			"swallowTokens"		: false
+		},
+		".\t": {
+			"wrapper"			: true,
+			"exit"				: /\n/i,
+			"state"				: "LIST_ORDERED",
+			"semanticLevel"		: "textblock",
+			"swallowTokens"		: false
+		},
 		// Blockquote
 		">": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
 			"state"				: "BLOCKQUOTE",
 			"semanticLevel"		: "block",
-			"swallowTokens"		: false
+			"swallowTokens"		: false,
+			"mustBeFirstChild"	: true
 		},
 		// Headings, 1 - 6
 		"h1.": {
@@ -380,7 +395,7 @@
 					
 					// If we don't have a prior sibling,
 					// we're not part of a larger paragraph!
-					} else if (!node.parent.previousSibling) {
+					} else if (!node.parent.previousSibling && !node.previousSibling) {
 						compilePreformatted = true;
 					
 					// Or there was a double-line-break and the previous sibling was culled
@@ -470,6 +485,44 @@
 				return buffer;
 			}
 		},
+		
+		// NOT WORKING YET ---------------------------------------------------------------------------------------------------------
+		"LIST_ORDERED": {
+			"process": function(node) {
+				if (node.previousSibling) return -1;
+			},
+			"compile": function(node,compiler) {
+				var buffer = "";
+				
+				if (!node.parent.previousSibling ||
+					node.parent.prevSiblingCulled ||
+					!node.parent.previousSibling.blockParent ||
+					!node.parent.previousSibling.children.length || 
+					(
+						node.parent.previousSibling.children[0].state !== "LIST_ORDERED" && 
+						node.parent.previousSibling.children[0].state !== "IMPLICIT_INDENT"
+					)) {
+					
+					buffer += "<ol>\n";
+				}
+				
+				buffer += "<li>" + compiler(node) + "</li>\n";
+				
+				if (!node.parent.nextSibling ||
+					node.parent.nextSiblingCulled ||
+					!node.parent.nextSibling.blockParent ||
+					!node.parent.nextSibling.children.length || 
+					(
+						node.parent.nextSibling.children[0].state !== "LIST_ORDERED" && 
+						node.parent.nextSibling.children[0].state !== "IMPLICIT_INDENT"
+					)) {
+					
+					buffer += "</ol>\n";
+				}
+				
+				return buffer;
+			}
+		},
 		"BLOCKQUOTE": {
 			"process": function(node) {
 				if (node.previousSibling) return -1;
@@ -489,7 +542,7 @@
 					buffer += "<blockquote>\n";
 				}
 				
-				buffer += compiler(node) + "\n";
+				buffer += "<p>" + compiler(node) + "</p>\n";
 				
 				if (!node.parent.nextSibling ||
 					node.parent.nextSiblingCulled ||
@@ -627,10 +680,10 @@
 			
 		},
 		"HORIZONTAL_RULE": {
-			//"process": function(node) {
-			//	// We've gotta be the first thing in our container.
-			//	if (node.previousSibling) return false;
-			//},
+			"process": function(node) {
+				// We've gotta be the first thing in our container.
+				if (node.previousSibling) return -1;
+			},
 			"compile": function(node,compiler) {
 				return "<hr />";
 			}

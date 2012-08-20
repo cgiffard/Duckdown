@@ -20,7 +20,7 @@ Link followed by confusing emoticon http://www.example.com (-:
 * http://example.com/ (List link)
 * It should.
 
-> Blockquoted: <http://example.com/>
+> Blockquoted: http://example.com/
 
 Auto-links should not occur here: `<http://example.com/>`
 

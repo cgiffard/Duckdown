@@ -450,7 +450,7 @@
 					// If so, find it and save it into the node object!
 					if (previousSibling) tmpDuckNode.previousSibling = previousSibling;
 					
-					if (tmpDuckNode.previousSibling) {
+					if (tmpDuckNode.previousSibling && tmpDuckNode.previousSibling instanceof DuckdownNode) {
 						// Save the next-sibling value into the previous sibling!
 						tmpDuckNode.previousSibling.nextSibling = tmpDuckNode;
 					}
@@ -661,7 +661,7 @@
 			
 			// Check whether current node is valid against text-match requirement (if applicable)
 			if (!tmpTokenGenus.validIf.exec(state.currentNode.raw())) {
-				state.emit("nodeinvalid",state.currentNode);
+				state.emit("nodeinvalid",state.currentNode,tmpTokenGenus.validIf,state.currentNode.raw());
 				nodeInvalid = true;
 			}
 		}

@@ -98,7 +98,8 @@
 			}
 		}
 		
-		returnBuffer += this.exitToken;
+		if (!Grammar.tokenMappings[this.token].swallowWhitespace)
+			returnBuffer += this.exitToken;
 		
 		// Cache the raw data for later...
 		this.rawCache = returnBuffer;

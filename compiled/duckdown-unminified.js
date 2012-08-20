@@ -3,7 +3,7 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Thu Aug 16 2012 17:02:41 GMT+1000 (EST)
+// Package built Mon Aug 20 2012 15:03:21 GMT+1000 (EST)
 // 
 
 
@@ -125,11 +125,12 @@ function require(input) {
 		},
 		// Struck-through
 		"-": {
+			"state"				: "TEXT_DEL",
 			"wrapper"			: true,
 			"semanticLevel"		: "text",
 			"exit"				: /[\-\n]/,
 			"validIf"			: /^\-\S[^\n]+\S\-$/,
-			"state"				: "TEXT_DEL"
+			"blankPrevSibling"	: true
 		},
 		// Underline
 		"_": {
@@ -173,13 +174,28 @@ function require(input) {
 			"semanticLevel"		: "textblock",
 			"swallowTokens"		: false
 		},
+		". ": {
+			"wrapper"			: true,
+			"exit"				: /\n/i,
+			"state"				: "LIST_ORDERED",
+			"semanticLevel"		: "textblock",
+			"swallowTokens"		: false
+		},
+		".\t": {
+			"wrapper"			: true,
+			"exit"				: /\n/i,
+			"state"				: "LIST_ORDERED",
+			"semanticLevel"		: "textblock",
+			"swallowTokens"		: false
+		},
 		// Blockquote
 		">": {
 			"wrapper"			: true,
 			"exit"				: /\n/i,
 			"state"				: "BLOCKQUOTE",
 			"semanticLevel"		: "block",
-			"swallowTokens"		: false
+			"swallowTokens"		: false,
+			"mustBeFirstChild"	: true
 		},
 		// Headings, 1 - 6
 		"h1.": {
@@ -220,10 +236,10 @@ function require(input) {
 		},
 		// Link detection
 		"http://": {
+			"state"				: "AUTO_LINK",
 			"wrapper"			: false,
 			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]\#]/i,
 			"validIf"			: /^http[s]?:\/\/[a-z0-9\-\.]+(\:\d+)?.*$/i,
-			"state"				: "AUTO_LINK",
 			// The exit condition matches the first _non_ link character, so we shouldn't swallow it.
 			"swallowTokens"		: false,
 			// But we should probably swallow whitespace - we can write it back out again if we're not followed
@@ -232,10 +248,10 @@ function require(input) {
 			"semanticLevel"		: "text"
 		},
 		"https://": {
+			"state"				: "AUTO_LINK",
 			"wrapper"			: false,
 			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]\#]/i,
 			"validIf"			: /^http[s]?:\/\/[a-z0-9\-\.]+(\:\d+)?.*$/i,
-			"state"				: "AUTO_LINK",
 			// The exit condition matches the first _non_ link character, so we shouldn't swallow it.
 			"swallowTokens"		: false,
 			// But we should probably swallow whitespace - we can write it back out again if we're not followed
@@ -244,20 +260,27 @@ function require(input) {
 			"semanticLevel"		: "text"
 		},
 		"(": {
+			"state"				: "PAREN_DESCRIPTOR",
 			"wrapper"			: true,
 			"exit"				: /(\s\s+|\n|\))/,
 			"validIf"			: /^\([^\n]+\)$/,
-			"state"				: "PAREN_DESCRIPTOR",
 			// We allow self-nesting because there might be parens in a link description,
 			// and we want to remain balanced!
 			"allowSelfNesting"	: true,
 			"semanticLevel"		: "text"
 		},
+		"-- ": {
+			"state"				: "CITATION",
+			"exit"				: /\n/,
+			"wrapper"			: true,
+			"semanticLevel"		: "text",
+			"swallowTokens"		: false
+		},
 		"--": {
+			"state"				: "HORIZONTAL_RULE",
 			"wrapper"			: false,
 			"exit"				: /[^\-]/i,
 			"validIf"			: /^\-\-+\n*$/i,
-			"state"				: "HORIZONTAL_RULE",
 			"semanticLevel"		: "block",
 			"swallowTokens"		: false
 		}
@@ -395,7 +418,7 @@ function require(input) {
 					
 					// If we don't have a prior sibling,
 					// we're not part of a larger paragraph!
-					} else if (!node.parent.previousSibling) {
+					} else if (!node.parent.previousSibling && !node.previousSibling) {
 						compilePreformatted = true;
 					
 					// Or there was a double-line-break and the previous sibling was culled
@@ -485,6 +508,44 @@ function require(input) {
 				return buffer;
 			}
 		},
+		
+		// NOT WORKING YET ---------------------------------------------------------------------------------------------------------
+		"LIST_ORDERED": {
+			"process": function(node) {
+				if (node.previousSibling) return -1;
+			},
+			"compile": function(node,compiler) {
+				var buffer = "";
+				
+				if (!node.parent.previousSibling ||
+					node.parent.prevSiblingCulled ||
+					!node.parent.previousSibling.blockParent ||
+					!node.parent.previousSibling.children.length || 
+					(
+						node.parent.previousSibling.children[0].state !== "LIST_ORDERED" && 
+						node.parent.previousSibling.children[0].state !== "IMPLICIT_INDENT"
+					)) {
+					
+					buffer += "<ol>\n";
+				}
+				
+				buffer += "<li>" + compiler(node) + "</li>\n";
+				
+				if (!node.parent.nextSibling ||
+					node.parent.nextSiblingCulled ||
+					!node.parent.nextSibling.blockParent ||
+					!node.parent.nextSibling.children.length || 
+					(
+						node.parent.nextSibling.children[0].state !== "LIST_ORDERED" && 
+						node.parent.nextSibling.children[0].state !== "IMPLICIT_INDENT"
+					)) {
+					
+					buffer += "</ol>\n";
+				}
+				
+				return buffer;
+			}
+		},
 		"BLOCKQUOTE": {
 			"process": function(node) {
 				if (node.previousSibling) return -1;
@@ -504,7 +565,7 @@ function require(input) {
 					buffer += "<blockquote>\n";
 				}
 				
-				buffer += compiler(node) + "\n";
+				buffer += "<p>" + compiler(node) + "</p>\n";
 				
 				if (!node.parent.nextSibling ||
 					node.parent.nextSiblingCulled ||
@@ -519,6 +580,17 @@ function require(input) {
 				}
 				
 				return buffer;
+			}
+		},
+		"CITATION": {
+			"process": function(node) {
+				// A return value of -1 leaves the components of a self-destructed token
+				// in the document as plain text - whereas a false return value culls it
+				// from the document.
+				if (node.previousSibling) return -1;
+			},
+			"compile": function(node,compiler) {
+				return "<cite>" + compiler(node) + "</cite>";
 			}
 		},
 		"HEADING_1": {
@@ -631,10 +703,10 @@ function require(input) {
 			
 		},
 		"HORIZONTAL_RULE": {
-			//"process": function(node) {
-			//	// We've gotta be the first thing in our container.
-			//	if (node.previousSibling) return false;
-			//},
+			"process": function(node) {
+				// We've gotta be the first thing in our container.
+				if (node.previousSibling) return -1;
+			},
 			"compile": function(node,compiler) {
 				return "<hr />";
 			}
@@ -856,7 +928,8 @@ function require(input) {
 			}
 		}
 		
-		returnBuffer += this.exitToken;
+		if (!Grammar.tokenMappings[this.token].swallowWhitespace)
+			returnBuffer += this.exitToken;
 		
 		// Cache the raw data for later...
 		this.rawCache = returnBuffer;
@@ -1079,7 +1152,7 @@ function require(input) {
 		return this.tokens;
 	};
 	
-	Duckdown.prototype.parse = function(input) {
+	Duckdown.prototype.parse = function(input,leavehanging) {
 		
 		if (input && typeof input === "string") this.tokenise(input);
 		
@@ -1091,7 +1164,7 @@ function require(input) {
 		}
 		
 		// Complete Duckdown parse...
-		this.completeParse();
+		if (!leavehanging) this.completeParse();
 		
 		return this.parserAST;
 	};
@@ -1223,6 +1296,23 @@ function require(input) {
 			return true;
 		}
 		
+		function findPreviousSibling() {
+			// Draw from the parser-buffer first if available...
+			// (we select the first non-whitespace node)
+			var nonWhitespaceBuffer =
+					state.parseBuffer
+						.filter(function(item) {
+							return !!item.replace(/\s+/ig,"").length;
+						});
+			
+			if (nonWhitespaceBuffer.length) {
+				return nonWhitespaceBuffer.pop();
+			} else {
+				tree = (!!state.currentNode ? state.currentNode.children : state.parserAST);
+				if (tree.length) return tree[tree.length-1];
+			}
+		}
+		
 		// Search our current state list for exit conditions, closing nodes where necessary
 		for (var stateIndex = state.parserStates.length - 1; stateIndex >= 0; stateIndex--) {
 			
@@ -1275,10 +1365,20 @@ function require(input) {
 				
 			} else {
 				
+				// Get previous sibling for this node...
+				var previousSibling = findPreviousSibling();
+				
 				// If the current state allows wrapping (ie we can nest something inside it...)
 				// _and_ the semantics make sense (e.g. we're not inserting a block element inside
 				// a text-level element)
-				if (weCanWrap() && semanticsAreCorrect(tokenGenus)) {
+				
+				// Our grammar may also have some rules about what can precede this node
+				// in order for it to be valid.
+				
+				if (weCanWrap() && semanticsAreCorrect(tokenGenus) && 
+					(!tokenGenus.blankPrevSibling || 
+						(tokenGenus.blankPrevSibling && !(typeof previousSibling === "string" && previousSibling.match(/\S$/))))) {
+					
 					
 					// Add this token's state to our state stack
 					state.addParseState(tokenGenus.state);
@@ -1303,23 +1403,9 @@ function require(input) {
 					
 					// Do we have a previous sibling for this node?
 					// If so, find it and save it into the node object!
+					if (previousSibling) tmpDuckNode.previousSibling = previousSibling;
 					
-					// Draw from the parser-buffer first if available...
-					// (we select the first non-whitespace node)
-					var nonWhitespaceBuffer =
-							state.parseBuffer
-								.filter(function(item) {
-									return !!item.replace(/\s+/ig,"").length;
-								});
-					
-					if (nonWhitespaceBuffer.length) {
-						tmpDuckNode.previousSibling = nonWhitespaceBuffer.pop();
-					} else {
-						tree = (!!state.currentNode ? state.currentNode.children : state.parserAST);
-						if (tree.length) tmpDuckNode.previousSibling = tree[tree.length-1];
-					}
-					
-					if (tmpDuckNode.previousSibling) {
+					if (tmpDuckNode.previousSibling && tmpDuckNode.previousSibling instanceof DuckdownNode) {
 						// Save the next-sibling value into the previous sibling!
 						tmpDuckNode.previousSibling.nextSibling = tmpDuckNode;
 					}
@@ -1363,13 +1449,6 @@ function require(input) {
 			// Push to parse buffer (if there's anything in the current token at all!)
 			if (state.currentToken.length) {
 				state.parseBuffer.push(state.currentToken);
-				
-				// Store whether the previous token was whitespace...
-				if (state.currentToken.match(/\s+$/)) {
-					state.whitespace = true;
-				} else {
-					state.whitespace = false;
-				}
 			}
 			
 			// If we're at the end of the document, push data into the current node.
@@ -1386,6 +1465,13 @@ function require(input) {
 				
 				state.parseBuffer = [];
 			}
+		}
+		
+		// Store whether the previous token was whitespace...
+		if (state.currentToken.match(/\s+$/)) {
+			state.whitespace = true;
+		} else {
+			state.whitespace = false;
 		}
 		
 		// Save the current token into the previous one!
@@ -1530,7 +1616,7 @@ function require(input) {
 			
 			// Check whether current node is valid against text-match requirement (if applicable)
 			if (!tmpTokenGenus.validIf.exec(state.currentNode.raw())) {
-				state.emit("nodeinvalid",state.currentNode);
+				state.emit("nodeinvalid",state.currentNode,tmpTokenGenus.validIf,state.currentNode.raw());
 				nodeInvalid = true;
 			}
 		}

@@ -3,7 +3,7 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Mon Aug 20 2012 15:03:21 GMT+1000 (EST)
+// Package built Mon Aug 20 2012 16:47:47 GMT+1000 (EST)
 // 
 
 
@@ -452,7 +452,10 @@ function require(input) {
 				if (!node.previousSibling) return true;
 				
 				// If we're preceded by whitespace, consider our starting token valid.
-				if (typeof node.previousSibling === "string" && node.previousSibling.match(/\s+$/)) return true;
+				if (typeof node.previousSibling === "string" && node.previousSibling.match(/\s$/g)) return true;
+				
+				// Or, if our previous sibling was another ducknode, return true.
+				if (typeof node.previousSibling === "object") return true;
 				
 				// Otherwise, dump our children back into the AST.
 				return -1;
@@ -549,6 +552,27 @@ function require(input) {
 		"BLOCKQUOTE": {
 			"process": function(node) {
 				if (node.previousSibling) return -1;
+				
+				// Check to see whether we contain an alternate block or hybrid level element.
+				// If so, mark as such for future processing!
+				node.blockParent = false;
+				
+				// This is a flat scan. A deep scan would be silly. (famous last words?)
+				for (var childIndex = 0; childIndex < node.children.length; childIndex ++) {
+					if (node.children[childIndex] instanceof Object &&
+						node.children[childIndex].semanticLevel !== "hybrid" && 
+						node.children[childIndex].semanticLevel !== "text") {
+						
+						node.blockParent = true;
+						break;
+					
+					// And we don't compile a wrapper around implicit indents either.
+					} else if (node.children[childIndex].state === "IMPLICIT_INDENT") {
+						
+						node.blockParent = true;
+						break;
+					}
+				}
 			},
 			"compile": function(node,compiler) {
 				var buffer = "";
@@ -565,7 +589,13 @@ function require(input) {
 					buffer += "<blockquote>\n";
 				}
 				
-				buffer += "<p>" + compiler(node) + "</p>\n";
+				var nodeValue = compiler(node);
+				
+				if (nodeValue.length) {
+					if (!node.blockParent) buffer += "<p>";
+					buffer += nodeValue;
+					if (!node.blockParent) buffer += "</p>\n";
+				}
 				
 				if (!node.parent.nextSibling ||
 					node.parent.nextSiblingCulled ||
@@ -1376,8 +1406,9 @@ function require(input) {
 				// in order for it to be valid.
 				
 				if (weCanWrap() && semanticsAreCorrect(tokenGenus) && 
-					(!tokenGenus.blankPrevSibling || 
-						(tokenGenus.blankPrevSibling && !(typeof previousSibling === "string" && previousSibling.match(/\S$/))))) {
+					(!tokenGenus.blankPrevSibling ||
+						!(typeof previousSibling === "string" && previousSibling.match(/\S$/i)
+					))) {
 					
 					
 					// Add this token's state to our state stack
@@ -1613,7 +1644,6 @@ function require(input) {
 		
 		// If we've got a valid-check for this token genus...
 		if (tmpTokenGenus && tmpTokenGenus.validIf instanceof RegExp) {
-			
 			// Check whether current node is valid against text-match requirement (if applicable)
 			if (!tmpTokenGenus.validIf.exec(state.currentNode.raw())) {
 				state.emit("nodeinvalid",state.currentNode,tmpTokenGenus.validIf,state.currentNode.raw());

@@ -197,7 +197,7 @@
 		return this.tokens;
 	};
 	
-	Duckdown.prototype.parse = function(input) {
+	Duckdown.prototype.parse = function(input,leavehanging) {
 		
 		if (input && typeof input === "string") this.tokenise(input);
 		
@@ -209,7 +209,7 @@
 		}
 		
 		// Complete Duckdown parse...
-		this.completeParse();
+		if (!leavehanging) this.completeParse();
 		
 		return this.parserAST;
 	};
@@ -341,6 +341,23 @@
 			return true;
 		}
 		
+		function findPreviousSibling() {
+			// Draw from the parser-buffer first if available...
+			// (we select the first non-whitespace node)
+			var nonWhitespaceBuffer =
+					state.parseBuffer
+						.filter(function(item) {
+							return !!item.replace(/\s+/ig,"").length;
+						});
+			
+			if (nonWhitespaceBuffer.length) {
+				return nonWhitespaceBuffer.pop();
+			} else {
+				tree = (!!state.currentNode ? state.currentNode.children : state.parserAST);
+				if (tree.length) return tree[tree.length-1];
+			}
+		}
+		
 		// Search our current state list for exit conditions, closing nodes where necessary
 		for (var stateIndex = state.parserStates.length - 1; stateIndex >= 0; stateIndex--) {
 			
@@ -393,10 +410,20 @@
 				
 			} else {
 				
+				// Get previous sibling for this node...
+				var previousSibling = findPreviousSibling();
+				
 				// If the current state allows wrapping (ie we can nest something inside it...)
 				// _and_ the semantics make sense (e.g. we're not inserting a block element inside
 				// a text-level element)
-				if (weCanWrap() && semanticsAreCorrect(tokenGenus)) {
+				
+				// Our grammar may also have some rules about what can precede this node
+				// in order for it to be valid.
+				
+				if (weCanWrap() && semanticsAreCorrect(tokenGenus) && 
+					(!tokenGenus.blankPrevSibling || 
+						(tokenGenus.blankPrevSibling && !(typeof previousSibling === "string" && previousSibling.match(/\S$/))))) {
+					
 					
 					// Add this token's state to our state stack
 					state.addParseState(tokenGenus.state);
@@ -421,21 +448,7 @@
 					
 					// Do we have a previous sibling for this node?
 					// If so, find it and save it into the node object!
-					
-					// Draw from the parser-buffer first if available...
-					// (we select the first non-whitespace node)
-					var nonWhitespaceBuffer =
-							state.parseBuffer
-								.filter(function(item) {
-									return !!item.replace(/\s+/ig,"").length;
-								});
-					
-					if (nonWhitespaceBuffer.length) {
-						tmpDuckNode.previousSibling = nonWhitespaceBuffer.pop();
-					} else {
-						tree = (!!state.currentNode ? state.currentNode.children : state.parserAST);
-						if (tree.length) tmpDuckNode.previousSibling = tree[tree.length-1];
-					}
+					if (previousSibling) tmpDuckNode.previousSibling = previousSibling;
 					
 					if (tmpDuckNode.previousSibling) {
 						// Save the next-sibling value into the previous sibling!
@@ -481,13 +494,6 @@
 			// Push to parse buffer (if there's anything in the current token at all!)
 			if (state.currentToken.length) {
 				state.parseBuffer.push(state.currentToken);
-				
-				// Store whether the previous token was whitespace...
-				if (state.currentToken.match(/\s+$/)) {
-					state.whitespace = true;
-				} else {
-					state.whitespace = false;
-				}
 			}
 			
 			// If we're at the end of the document, push data into the current node.
@@ -504,6 +510,13 @@
 				
 				state.parseBuffer = [];
 			}
+		}
+		
+		// Store whether the previous token was whitespace...
+		if (state.currentToken.match(/\s+$/)) {
+			state.whitespace = true;
+		} else {
+			state.whitespace = false;
 		}
 		
 		// Save the current token into the previous one!

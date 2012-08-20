@@ -159,12 +159,17 @@
 			
 			case "parsetoken":
 				log("Parsing token '" + args[0].replace(/\n/ig,"\\n") + "'");
-				log("State list: " + self.parserStates.join(","));
+				
+				if (duck.verbose) {
+					log("State list: " + self.parserStates.join(","));
+					log("Last token whitespace?",self.whitespace);
+				}
+				
 				break;
 			
 			case "addstate":
 				log("Added the state " + args[0] + " to the state stack.");
-				log("State list: " + self.parserStates.join(","));
+				if (duck.verbose) log("State list: " + self.parserStates.join(","));
 				break;
 			
 			case "nodeclosed":

@@ -102,11 +102,12 @@
 		},
 		// Struck-through
 		"-": {
+			"state"				: "TEXT_DEL",
 			"wrapper"			: true,
 			"semanticLevel"		: "text",
 			"exit"				: /[\-\n]/,
 			"validIf"			: /^\-\S[^\n]+\S\-$/,
-			"state"				: "TEXT_DEL"
+			"blankPrevSibling"	: true
 		},
 		// Underline
 		"_": {
@@ -197,10 +198,10 @@
 		},
 		// Link detection
 		"http://": {
+			"state"				: "AUTO_LINK",
 			"wrapper"			: false,
 			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]\#]/i,
 			"validIf"			: /^http[s]?:\/\/[a-z0-9\-\.]+(\:\d+)?.*$/i,
-			"state"				: "AUTO_LINK",
 			// The exit condition matches the first _non_ link character, so we shouldn't swallow it.
 			"swallowTokens"		: false,
 			// But we should probably swallow whitespace - we can write it back out again if we're not followed
@@ -209,10 +210,10 @@
 			"semanticLevel"		: "text"
 		},
 		"https://": {
+			"state"				: "AUTO_LINK",
 			"wrapper"			: false,
 			"exit"				: /[^a-z0-9\-_\.\~\!\*\'\(\)\;\:\@\&\=\+\$\,\/\?\%\#\[\]\#]/i,
 			"validIf"			: /^http[s]?:\/\/[a-z0-9\-\.]+(\:\d+)?.*$/i,
-			"state"				: "AUTO_LINK",
 			// The exit condition matches the first _non_ link character, so we shouldn't swallow it.
 			"swallowTokens"		: false,
 			// But we should probably swallow whitespace - we can write it back out again if we're not followed
@@ -221,20 +222,27 @@
 			"semanticLevel"		: "text"
 		},
 		"(": {
+			"state"				: "PAREN_DESCRIPTOR",
 			"wrapper"			: true,
 			"exit"				: /(\s\s+|\n|\))/,
 			"validIf"			: /^\([^\n]+\)$/,
-			"state"				: "PAREN_DESCRIPTOR",
 			// We allow self-nesting because there might be parens in a link description,
 			// and we want to remain balanced!
 			"allowSelfNesting"	: true,
 			"semanticLevel"		: "text"
 		},
+		"-- ": {
+			"state"				: "CITATION",
+			"exit"				: /\n/,
+			"wrapper"			: true,
+			"semanticLevel"		: "text",
+			"swallowTokens"		: false
+		},
 		"--": {
+			"state"				: "HORIZONTAL_RULE",
 			"wrapper"			: false,
 			"exit"				: /[^\-]/i,
 			"validIf"			: /^\-\-+\n*$/i,
-			"state"				: "HORIZONTAL_RULE",
 			"semanticLevel"		: "block",
 			"swallowTokens"		: false
 		}
@@ -496,6 +504,17 @@
 				}
 				
 				return buffer;
+			}
+		},
+		"CITATION": {
+			"process": function(node) {
+				// A return value of -1 leaves the components of a self-destructed token
+				// in the document as plain text - whereas a false return value culls it
+				// from the document.
+				if (node.previousSibling) return -1;
+			},
+			"compile": function(node,compiler) {
+				return "<cite>" + compiler(node) + "</cite>";
 			}
 		},
 		"HEADING_1": {

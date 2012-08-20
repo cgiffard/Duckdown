@@ -3,10 +3,12 @@ Duckdown [![Build Status](https://secure.travis-ci.org/cgiffard/Duckdown.png)](h
 
 Ultra-simple Markdown-inspired markup language.
 
-Preliminary documentation.
-
 Writing with Duckdown
 ----------------------
+
+Duckdown is intended to be very simple, and flexible, - but very strict and consequently unambiguous for authors.
+
+This is intended to greatly ease 
 
 
 Using Duckdown

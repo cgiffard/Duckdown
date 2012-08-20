@@ -421,8 +421,9 @@
 				// in order for it to be valid.
 				
 				if (weCanWrap() && semanticsAreCorrect(tokenGenus) && 
-					(!tokenGenus.blankPrevSibling || 
-						(tokenGenus.blankPrevSibling && !(typeof previousSibling === "string" && previousSibling.match(/\S$/))))) {
+					(!tokenGenus.blankPrevSibling ||
+						!(typeof previousSibling === "string" && previousSibling.match(/\S$/i)
+					))) {
 					
 					
 					// Add this token's state to our state stack
@@ -658,7 +659,6 @@
 		
 		// If we've got a valid-check for this token genus...
 		if (tmpTokenGenus && tmpTokenGenus.validIf instanceof RegExp) {
-			
 			// Check whether current node is valid against text-match requirement (if applicable)
 			if (!tmpTokenGenus.validIf.exec(state.currentNode.raw())) {
 				state.emit("nodeinvalid",state.currentNode,tmpTokenGenus.validIf,state.currentNode.raw());

@@ -429,7 +429,10 @@
 				if (!node.previousSibling) return true;
 				
 				// If we're preceded by whitespace, consider our starting token valid.
-				if (typeof node.previousSibling === "string" && node.previousSibling.match(/\s+$/)) return true;
+				if (typeof node.previousSibling === "string" && node.previousSibling.match(/\s$/g)) return true;
+				
+				// Or, if our previous sibling was another ducknode, return true.
+				if (typeof node.previousSibling === "object") return true;
 				
 				// Otherwise, dump our children back into the AST.
 				return -1;
@@ -526,6 +529,27 @@
 		"BLOCKQUOTE": {
 			"process": function(node) {
 				if (node.previousSibling) return -1;
+				
+				// Check to see whether we contain an alternate block or hybrid level element.
+				// If so, mark as such for future processing!
+				node.blockParent = false;
+				
+				// This is a flat scan. A deep scan would be silly. (famous last words?)
+				for (var childIndex = 0; childIndex < node.children.length; childIndex ++) {
+					if (node.children[childIndex] instanceof Object &&
+						node.children[childIndex].semanticLevel !== "hybrid" && 
+						node.children[childIndex].semanticLevel !== "text") {
+						
+						node.blockParent = true;
+						break;
+					
+					// And we don't compile a wrapper around implicit indents either.
+					} else if (node.children[childIndex].state === "IMPLICIT_INDENT") {
+						
+						node.blockParent = true;
+						break;
+					}
+				}
 			},
 			"compile": function(node,compiler) {
 				var buffer = "";
@@ -542,7 +566,13 @@
 					buffer += "<blockquote>\n";
 				}
 				
-				buffer += "<p>" + compiler(node) + "</p>\n";
+				var nodeValue = compiler(node);
+				
+				if (nodeValue.length) {
+					if (!node.blockParent) buffer += "<p>";
+					buffer += nodeValue;
+					if (!node.blockParent) buffer += "</p>\n";
+				}
 				
 				if (!node.parent.nextSibling ||
 					node.parent.nextSiblingCulled ||

@@ -36,7 +36,7 @@
 	
 	// Get Duckdown data... whether from file or STDIN
 	if (duck.args.length > 1) {
-		console.warn("Warning: For the moment, the Duck CLI only deals with one file at a time.");
+		console.warn("Warning: For the moment, the Duckdown CLI only deals with one file at a time.");
 	}
 	
 	if (duck.build) {
@@ -67,7 +67,10 @@
 		filename = duck.args.pop();
 		if (filename && filename.length > 0) {
 			fs.readFile(filename,function(error,fileData) {
-				if (error) throw error;
+				if (error) return (function() {
+					console.error("Couldn't find or open the file '%s'.",filename);
+					process.exit(1);
+				})();
 				
 				// Well we got this far...
 				parseDuckdown(fileData.toString());

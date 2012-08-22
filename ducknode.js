@@ -107,6 +107,25 @@
 		return escaped ? escape(this.rawCache) : this.rawCache;
 	};
 	
+	DuckdownNode.prototype.remove = function() {
+		var comparisonNode = this;
+		
+		if (this.previousSibling) {
+			this.previousSibling.nextSibling = this.nextSibling;
+		}
+		
+		if (this.nextSibling) {
+			this.nextSibling.previousSibling = this.previousSibling;
+		}
+		
+		if (this.parentNode) {
+			this.parentNode.children = 
+				this.parentNode.children.filter(function(child) {
+					return child !== comparisonNode;
+				});
+		}
+	};
+	
 	DuckdownNode.prototype.toString = function() {
 		return "<" + this.state + ":" + this.children.length + ">";
 	};

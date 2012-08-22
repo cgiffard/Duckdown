@@ -135,6 +135,13 @@
 			"exit"				: /[`\n]/,
 			"state"				: "CODE_LITERAL"
 		},
+		// Quotes
+		"\"": {
+			"wrapper"			: false,
+			"semanticLevel"		: "text",
+			"exit"				: /["\n]/,
+			"state"				: "TEXT_QUOTE"
+		},
 		// Bulletted list item...
 		"* ": {
 			"wrapper"			: true,
@@ -442,6 +449,20 @@
 				return "<del>" + compiler(node) + "</del>";
 			}
 		},
+		"TEXT_QUOTE": {
+			"process": function(node) {
+				if (node.previousSibling) return -1;
+				
+				if (node.parent &&
+					!node.parent.prevSiblingCulled &&
+					node.parent.previousSibling &&
+					node.parent.previousSibling.state === node.parent.state)
+					return -1;
+			},
+			"compile": function(node,compiler) {
+				return "<q>" + compiler(node) + "</q>";
+			}
+		},
 		"TEXT_UNDERLINE": {
 			"compile": function(node,compiler) {
 				return "<u>" + compiler(node) + "</u>";
@@ -492,7 +513,13 @@
 		// NOT WORKING YET ---------------------------------------------------------------------------------------------------------
 		"LIST_ORDERED": {
 			"process": function(node) {
-				if (node.previousSibling) return -1;
+				if (node.previousSibling && (typeof node.previousSibling === "object" || node.previousSibling.match(/\D/ig))) return -1;
+				
+				if (node.previousSibling && node.previousSibling.match(/^\d+$/)) {
+					return -1;
+					// remove previous
+					//return true;
+				}
 			},
 			"compile": function(node,compiler) {
 				var buffer = "";

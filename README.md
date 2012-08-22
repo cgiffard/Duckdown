@@ -3,7 +3,7 @@ Duckdown [![Build Status](https://secure.travis-ci.org/cgiffard/Duckdown.png)](h
 
 Ultra-simple Markdown-inspired markup language, implemented initially in JS (targeting both the browser and node.)
 
-Duckdown has a difference though - it doesn't work through naive regex based hacks: It's a proper recursive descendant parser/state machine with a customisable grammar!
+Duckdown has a difference though - it doesn't work through naive regex hacks: It's a proper recursive descendant parser/state machine with a customisable grammar!
 
 You can use it as is, extend it, or build your very own text markup language with it.
 
@@ -15,6 +15,66 @@ Some aspects of Markdown were omitted or changed as we felt they were they were 
 
 **WARNING: You should consider the API and text-specification unstable until further notice. Hopefully everything will be formalised soon.**
 
+Like Markdown, Duckdown is primarily a line-based language. Inline text styling and linking are similar. Remember that
+this document describes the *default* Duckdown grammar, and the parser is not necessarily bound by these same limitations or patterns.
+
+### Bold, Italic, Underline, and Strikethrough
+
+Bold, italic, and underline are specified by prepending a string of text with a token, and closing a given string with the same token.
+
+	*This text is bold.*
+	
+	~This text is emphasised.~
+	
+	-This text is struck through-
+	
+	_This text is underlined._
+	
+	*This text is bold ~and this is bold & em!~*
+	
+	"When I asked her ~why~ she'd done it, she replied '*Just because.*'"
+
+Duckdown is quite strict in what it considers valid. You may not wrap a text style over multiple lines. Opening tokens which aren't given breathing room
+(they directly abut a word or non-significant token) will be ignored. Closing tokens which do not directly abut the string of text they close will be ignored.
+Text-level tags which are not closed are considered invalid. Mismatched nesting is also considered invalid.
+
+### Headings
+
+Headings in Duckdown are described in only one way - by a tag at the beginning of the line, like so:
+
+	h1. This is heading 1
+	
+	h2. This is heading 2 (With some ~emphasised~ text!)
+	
+Headings may contain inline tagging/styling, such as emphasis, strikethrough, or a link. Duckdown supports headings one (h1.) through six (h6.)
+
+### Links
+
+The primary rationale behind the Duckdown link syntax design is ease of use (and readability.) Secondarily, content archival and maintainability.
+
+With that in mind, we've made the controversial decision to scrap relative links. Instead, all links must include the full path (including the protocol!)
+This ensures relative reorganisation of content will not break link relationships. Links are left plain, and simply included in text like so:
+
+	http://www.example.com/
+	
+Of course, often it won't make much sense to include a URL in the middle of a sentence! In that circumstance you can use parentheses to add a link description:
+
+	You can purchase http://example.com/barbeques/fourburner (four burner barbeques) at the Acme BBQ store.
+
+It is possible to include any inline text styles in the link text.
+
+	https://example.com/sinisterconspiracy.html (Recently, I chanced upon a sinister Mafia conspiracy involving none other than ~*The Queen herself!*~)
+
+
+
+*more to come......*
+
+
+### Lists & Blockquotes
+
+### Feathers
+
+### A word on text and block-level semantics
 
 Using Duckdown
 ==============
@@ -89,11 +149,12 @@ Licence & Credits
 
 **Who's responsible for this monstrosity!?**
 
-Christopher Giffard, with contributions to the test suite by Daniel Nitsche. This project was undertaken at the Australian Department of Education, Employment, and Workplace Relations (but of course, any opinions expressed here or anywhere else are purely my own!)
+Christopher Giffard, with contributions to the test suite and language design by Daniel Nitsche. This project was undertaken at the Australian Department of Education, Employment, and Workplace Relations (but of course, any opinions expressed here or anywhere else are purely my own!)
 
 **And the licence? BSD 2-Clause!**
 
-Copyright (c) 2012, Christopher Giffard
+Copyright (c) 2012, Christopher Giffard.
+
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:

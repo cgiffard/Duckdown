@@ -586,6 +586,10 @@
 						nodeText = nodeText.replace(Grammar.escapeCharacters,Grammar.replacer);
 					}
 					
+					// And we shouldn't accept newlines or tab characters as part of text.
+					// Replace all whitespace with plain old spaces.
+					nodeText = nodeText.replace(/\s+/," ");
+					
 					// Just push this node onto our return buffer
 					returnBuffer += nodeText;
 					

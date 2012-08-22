@@ -439,6 +439,9 @@
 					tmpDuckNode.wrapper		= tokenGenus.wrapper;
 					tmpDuckNode.token		= state.currentToken;
 					
+					// Add a link back to the parser...
+					tmpDuckNode.parser		= state;
+					
 					// Some nodes need to know that their previous sibling was culled.
 					tmpDuckNode.prevSiblingCulled = state.prevNodeCulled;
 					tmpDuckNode.prevCulledSiblingState = state.prevCullState;
@@ -467,6 +470,27 @@
 					} else {
 						state.parserAST.push.apply(state.parserAST,state.parseBuffer);
 						state.parserAST.push(tmpDuckNode);
+					}
+					
+					// Include the index of this node in its parents children...
+					tmpDuckNode.index = (state.currentNode ? state.currentNode.children.length : state.parserAST.length) -1;
+					
+					// Are we a block element? Mark our ancestors as a parents of a block level element, and store the block type.
+					if (tokenGenus.semanticLevel === "block" || tokenGenus.semanticLevel === "textblock") {
+						var tmpNodePointer = state.currentNode;
+						while(tmpNodePointer !== null) {
+							tmpNodePointer.blockParent = true;
+							tmpNodePointer.blockType = tokenGenus.state;
+							
+							// Make a two-way link between the original ancestor and the child.
+							if (!tmpNodePointer.parent) {
+								tmpNodePointer.blockNode = tmpDuckNode;
+								tmpDuckNode.rootBlock = tmpNodePointer;
+							}
+							
+							// up a level...
+							tmpNodePointer = tmpNodePointer.parent;
+						}
 					}
 					
 					// Clear parse buffer.

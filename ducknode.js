@@ -7,6 +7,10 @@
 	var Grammar = require("./grammar.js");
 	
 	var DuckdownNode = function(state) {
+		
+		// Node index (as child of the parent)
+		this.index				= 0;
+		
 		this.state				= state && typeof state === "string" ? state : "NODE_TEXT";
 		this.stateStack			= [];
 		this.depth				= 0;
@@ -18,8 +22,16 @@
 		this.previousSibling	= null;
 		this.nextSibling		= null;
 		this.semanticLevel		= "text";
+		
+		// Link back to the duckdown parser
+		this.parser				= null;
+		
 		// Track whether this node has been processed before compilation...
 		this.processed			= false;
+		
+		// Does this node contain block children? If so - what kind of block?
+		this.blockParent		= false;
+		this.blockType			= null;
 		
 		// Was our /real/ previous sibling culled on close?
 		// (This doesn't preclude us from having a .previousSibling - but
@@ -42,6 +54,15 @@
 	// Helper function for escaping input...
 	function escape(input) {
 		return input.replace(Grammar.escapeCharacters,Grammar.replacer);
+	}
+	
+	// Helper function for updating the indices of child elements...
+	function updateIndicies(nodeList) {
+		for (var childIndex = 0; childIndex < nodeList.length; childIndex++) {
+			if (nodeList[childIndex] instanceof DuckdownNode) {
+				nodeList[childIndex].index = childIndex;
+			}
+		}
 	}
 	
 	// Returns the unformatted text of the node (including all descendants.)
@@ -108,22 +129,57 @@
 	};
 	
 	DuckdownNode.prototype.remove = function() {
-		var comparisonNode = this;
-		
-		if (this.previousSibling) {
-			this.previousSibling.nextSibling = this.nextSibling;
-		}
-		
-		if (this.nextSibling) {
-			this.nextSibling.previousSibling = this.previousSibling;
-		}
-		
-		if (this.parentNode) {
-			this.parentNode.children = 
-				this.parentNode.children.filter(function(child) {
+		var comparisonNode = this,
+			tree = (this.parent ? this.parent.children : this.parser.parserAST),
+			filterTree =
+				tree.filter(function(child) {
 					return child !== comparisonNode;
 				});
+		
+		// Update node indices
+		updateIndices(filterTree);
+		
+		if (this.previousSibling)
+			this.previousSibling.nextSibling = this.nextSibling;
+		
+		if (this.nextSibling)
+			this.nextSibling.previousSibling = this.previousSibling;
+		
+		if (this.parent) {
+			this.parent.children = filterTree;
+		} else {
+			this.parser.parserAST = filterTree;
 		}
+	};
+	
+	DuckdownNode.prototype.removeChild = function(atIndex) {
+		// Before starting, ensure our index will be correct...
+		this.updateIndices();
+		
+		if (!this.children[atIndex])
+			throw new Error("Child at index " + atIndex + " does not exist.");
+		
+		if (this.children[atIndex] instanceof DuckdownNode) {
+			this.children[atIndex].remove();
+		} else {
+			
+			// Correct sibling relationships...
+			if (atIndex < this.children.length && this.children[atIndex+1] instanceof DuckdownNode)
+				this.children[atIndex+1].previousSibling = this.children[atIndex-1] || null;
+			
+			if (atIndex > 0 && this.children[atIndex-1] instanceof DuckdownNode)
+				this.children[atIndex-1].nextSibling = this.children[atIndex+1] || null;
+			
+			// Remove item in question
+			this.children.splice(atIndex,1);
+			
+			// Fix indices
+			this.updateIndices();
+		}
+	};
+	
+	DuckdownNode.prototype.updateIndices = function() {
+		updateIndicies(this.children);
 	};
 	
 	DuckdownNode.prototype.toString = function() {

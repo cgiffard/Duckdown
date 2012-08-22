@@ -46,7 +46,8 @@
 			"swallowTokens"		: false,
 			"exit"				: /\n/,
 			"state"				: "IMPLICIT_INDENT",
-			"semanticLevel"		: "hybrid"
+			"semanticLevel"		: "hybrid",
+			"allowSelfNesting"	: true
 		},
 		// Four spaces (equivalent to tab above)
 		"    ": {
@@ -56,7 +57,8 @@
 			"swallowTokens"		: false,
 			"exit"				: /\n/,
 			"state"				: "IMPLICIT_INDENT",
-			"semanticLevel"		: "hybrid"
+			"semanticLevel"		: "hybrid",
+			"allowSelfNesting"	: true
 		},
 		// XML/HTML Entity...
 		"&": {
@@ -476,6 +478,14 @@
 		"LIST_UNORDERED": {
 			"process": function(node) {
 				if (node.previousSibling) return -1;
+				
+				if (!node.parent) return -1;
+				
+				if (node.parent.previousSibling && typeof node.parent.previousSibling === "object") {
+					if (node.parent.previousSibling.state !== node.parent.state && !node.parent.prevSiblingCulled) {
+						return -1;
+					}
+				}
 			},
 			"compile": function(node,compiler) {
 				var buffer = "";
@@ -509,17 +519,34 @@
 				return buffer;
 			}
 		},
-		
-		// NOT WORKING YET ---------------------------------------------------------------------------------------------------------
 		"LIST_ORDERED": {
 			"process": function(node) {
-				if (node.previousSibling && (typeof node.previousSibling === "object" || node.previousSibling.match(/\D/ig))) return -1;
-				
-				if (node.previousSibling && node.previousSibling.match(/^\d+$/)) {
+				if (node.previousSibling && (typeof node.previousSibling === "object" || node.previousSibling.match(/[^a-z0-9]/g))) {
 					return -1;
-					// remove previous
-					//return true;
 				}
+				
+				// For now, ignore ordered lists that fall outside of implicit breaks or another construct.
+				if (!node.parent) {
+					return -1;
+				}
+				
+				if (node.parent.previousSibling && typeof node.parent.previousSibling === "object") {
+					if (node.parent.previousSibling.state !== node.parent.state && !node.parent.prevSiblingCulled) {
+						return -1;
+					}
+				}
+				
+				if (node.previousSibling && node.previousSibling.match(/^[a-z0-9]+$/) && node.index < 2) {
+					
+					// Remove the list operand, but not before saving what kind of list we were supposed to be.
+					node.listQualifier = node.previousSibling;
+					node.parent.removeChild(node.index-1);
+					
+					return true;
+				}
+				
+				// Nope, we're not acceptable. Dump back out as text.
+				return -1;
 			},
 			"compile": function(node,compiler) {
 				var buffer = "";
@@ -533,7 +560,17 @@
 						node.parent.previousSibling.children[0].state !== "IMPLICIT_INDENT"
 					)) {
 					
-					buffer += "<ol>\n";
+					var listType = "";
+					if (node.listQualifier.match(/[ivxcmd]/ig)) {
+						listType = "lower-roman";
+						
+					} else if (node.listQualifier.match(/[a-z]/ig)) {
+						listType = "lower-alpha";
+					}
+					
+					listType = listType.length ? " style=\"list-style: " + listType + ";\"" : "";
+					
+					buffer += "<ol" + listType + ">\n";
 				}
 				
 				buffer += "<li>" + compiler(node) + "</li>\n";

@@ -52,7 +52,7 @@ Headings may contain inline tagging/styling, such as emphasis, strikethrough, or
 
 The primary rationale behind the Duckdown link syntax design is ease of use (and readability.) Secondarily, content archival and maintainability.
 
-With that in mind, we've made the controversial decision to scrap relative links. Instead, all links must include the full path (including the protocol!)
+With that in mind, we've made the possibly controversial decision to scrap relative links. Instead, all links must include the full path (including the protocol!)
 This ensures relative reorganisation of content will not break link relationships. Links are left plain, and simply included in text like so:
 
 	http://www.example.com/
@@ -69,12 +69,19 @@ It is possible to include any inline text styles in the link text.
 
 *more to come......*
 
+### Horizontal Rules
 
 ### Lists & Blockquotes
 
 ### Feathers
 
 ### A word on text and block-level semantics
+
+BLOCK!
+
+### A word on encoding
+
+ENCODING!
 
 Using Duckdown
 ==============
@@ -86,17 +93,17 @@ In The Browser
 CLI
 ---
 
-duck
-.version(PackageInfo.version)
-.option("-t, --tokens","Output tokens")
-.option("-a, --ast","Show parse/AST tree")
-.option("-l, --log","Show parse log")
-.option("-d, --disk","Write parse log to disk")
-.option("-v, --verbose","Verbose output")
-.option("-s, --surpress","Surpress compiled output")
-.option("-e, --echo","Include raw duckdown in output")
-.option("-b, --build","Build duckdown for the browser")
-.parse(process.argv);
+	duck
+	.version(PackageInfo.version)
+	.option("-t, --tokens","Output tokens")
+	.option("-a, --ast","Show parse/AST tree")
+	.option("-l, --log","Show parse log")
+	.option("-d, --disk","Write parse log to disk")
+	.option("-v, --verbose","Verbose output")
+	.option("-s, --surpress","Surpress compiled output")
+	.option("-e, --echo","Include raw duckdown in output")
+	.option("-b, --build","Build duckdown for the browser")
+	.parse(process.argv);
 
 
 Node API

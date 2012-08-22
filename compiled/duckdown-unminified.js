@@ -3,7 +3,7 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Mon Aug 20 2012 16:47:47 GMT+1000 (EST)
+// Package built Wed Aug 22 2012 16:06:40 GMT+1000 (EST)
 // 
 
 
@@ -157,6 +157,13 @@ function require(input) {
 			"semanticLevel"		: "text",
 			"exit"				: /[`\n]/,
 			"state"				: "CODE_LITERAL"
+		},
+		// Quotes
+		"\"": {
+			"wrapper"			: false,
+			"semanticLevel"		: "text",
+			"exit"				: /["\n]/,
+			"state"				: "TEXT_QUOTE"
 		},
 		// Bulletted list item...
 		"* ": {
@@ -465,6 +472,20 @@ function require(input) {
 				return "<del>" + compiler(node) + "</del>";
 			}
 		},
+		"TEXT_QUOTE": {
+			"process": function(node) {
+				if (node.previousSibling) return -1;
+				
+				if (node.parent &&
+					!node.parent.prevSiblingCulled &&
+					node.parent.previousSibling &&
+					node.parent.previousSibling.state === node.parent.state)
+					return -1;
+			},
+			"compile": function(node,compiler) {
+				return "<q>" + compiler(node) + "</q>";
+			}
+		},
 		"TEXT_UNDERLINE": {
 			"compile": function(node,compiler) {
 				return "<u>" + compiler(node) + "</u>";
@@ -478,6 +499,14 @@ function require(input) {
 		"LIST_UNORDERED": {
 			"process": function(node) {
 				if (node.previousSibling) return -1;
+				
+				if (!node.parent) return -1;
+				
+				if (node.parent.previousSibling && typeof node.parent.previousSibling === "object") {
+					if (node.parent.previousSibling.state !== node.parent.state && !node.parent.prevSiblingCulled) {
+						return -1;
+					}
+				}
 			},
 			"compile": function(node,compiler) {
 				var buffer = "";
@@ -515,7 +544,28 @@ function require(input) {
 		// NOT WORKING YET ---------------------------------------------------------------------------------------------------------
 		"LIST_ORDERED": {
 			"process": function(node) {
-				if (node.previousSibling) return -1;
+				if (node.previousSibling && (typeof node.previousSibling === "object" || node.previousSibling.match(/[^a-z0-9]/g))) return -1;
+				
+				// For now, ignore ordered lists that fall outside of implicit breaks or another construct.
+				if (!node.parent) return -1;
+				
+				if (node.parent.previousSibling && typeof node.parent.previousSibling === "object") {
+					if (node.parent.previousSibling.state !== node.parent.state && !node.parent.prevSiblingCulled) {
+						return -1;
+					}
+				}
+				
+				if (node.previousSibling && node.previousSibling.match(/^[a-z0-9]+$/) && node.index < 2) {
+					
+					// Remove the list operand, but not before saving what kind of list we were supposed to be.
+					node.listQualifier = node.previousSibling;
+					node.parent.removeChild(node.index-1);
+					
+					return true;
+				}
+				
+				// Nope, we're not acceptable. Dump back out as text.
+				return -1;
 			},
 			"compile": function(node,compiler) {
 				var buffer = "";
@@ -529,7 +579,17 @@ function require(input) {
 						node.parent.previousSibling.children[0].state !== "IMPLICIT_INDENT"
 					)) {
 					
-					buffer += "<ol>\n";
+					var listType = "";
+					if (node.listQualifier.match(/[ivxcmd]/ig)) {
+						listType = "lower-roman";
+						
+					} else if (node.listQualifier.match(/[a-z]/ig)) {
+						listType = "lower-alpha";
+					}
+					
+					listType = listType.length ? " style=\"list-style: " + listType + ";\"" : "";
+					
+					buffer += "<ol" + listType + ">\n";
 				}
 				
 				buffer += "<li>" + compiler(node) + "</li>\n";
@@ -867,6 +927,10 @@ function require(input) {
 	var Grammar = require("./grammar.js");
 	
 	var DuckdownNode = function(state) {
+		
+		// Node index (as child of the parent)
+		this.index				= 0;
+		
 		this.state				= state && typeof state === "string" ? state : "NODE_TEXT";
 		this.stateStack			= [];
 		this.depth				= 0;
@@ -878,8 +942,16 @@ function require(input) {
 		this.previousSibling	= null;
 		this.nextSibling		= null;
 		this.semanticLevel		= "text";
+		
+		// Link back to the duckdown parser
+		this.parser				= null;
+		
 		// Track whether this node has been processed before compilation...
 		this.processed			= false;
+		
+		// Does this node contain block children? If so - what kind of block?
+		this.blockParent		= false;
+		this.blockType			= null;
 		
 		// Was our /real/ previous sibling culled on close?
 		// (This doesn't preclude us from having a .previousSibling - but
@@ -902,6 +974,15 @@ function require(input) {
 	// Helper function for escaping input...
 	function escape(input) {
 		return input.replace(Grammar.escapeCharacters,Grammar.replacer);
+	}
+	
+	// Helper function for updating the indices of child elements...
+	function updateIndicies(nodeList) {
+		for (var childIndex = 0; childIndex < nodeList.length; childIndex++) {
+			if (nodeList[childIndex] instanceof DuckdownNode) {
+				nodeList[childIndex].index = childIndex;
+			}
+		}
 	}
 	
 	// Returns the unformatted text of the node (including all descendants.)
@@ -965,6 +1046,60 @@ function require(input) {
 		this.rawCache = returnBuffer;
 		
 		return escaped ? escape(this.rawCache) : this.rawCache;
+	};
+	
+	DuckdownNode.prototype.remove = function() {
+		var comparisonNode = this,
+			tree = (this.parent ? this.parent.children : this.parser.parserAST),
+			filterTree =
+				tree.filter(function(child) {
+					return child !== comparisonNode;
+				});
+		
+		// Update node indices
+		updateIndices(filterTree);
+		
+		if (this.previousSibling)
+			this.previousSibling.nextSibling = this.nextSibling;
+		
+		if (this.nextSibling)
+			this.nextSibling.previousSibling = this.previousSibling;
+		
+		if (this.parent) {
+			this.parent.children = filterTree;
+		} else {
+			this.parser.parserAST = filterTree;
+		}
+	};
+	
+	DuckdownNode.prototype.removeChild = function(atIndex) {
+		// Before starting, ensure our index will be correct...
+		this.updateIndices();
+		
+		if (!this.children[atIndex])
+			throw new Error("Child at index " + atIndex + " does not exist.");
+		
+		if (this.children[atIndex] instanceof DuckdownNode) {
+			this.children[atIndex].remove();
+		} else {
+			
+			// Correct sibling relationships...
+			if (atIndex < this.children.length && this.children[atIndex+1] instanceof DuckdownNode)
+				this.children[atIndex+1].previousSibling = this.children[atIndex-1] || null;
+			
+			if (atIndex > 0 && this.children[atIndex-1] instanceof DuckdownNode)
+				this.children[atIndex-1].nextSibling = this.children[atIndex+1] || null;
+			
+			// Remove item in question
+			this.children.splice(atIndex,1);
+			
+			// Fix indices
+			this.updateIndices();
+		}
+	};
+	
+	DuckdownNode.prototype.updateIndices = function() {
+		updateIndicies(this.children);
 	};
 	
 	DuckdownNode.prototype.toString = function() {
@@ -1424,6 +1559,9 @@ function require(input) {
 					tmpDuckNode.wrapper		= tokenGenus.wrapper;
 					tmpDuckNode.token		= state.currentToken;
 					
+					// Add a link back to the parser...
+					tmpDuckNode.parser		= state;
+					
 					// Some nodes need to know that their previous sibling was culled.
 					tmpDuckNode.prevSiblingCulled = state.prevNodeCulled;
 					tmpDuckNode.prevCulledSiblingState = state.prevCullState;
@@ -1453,6 +1591,9 @@ function require(input) {
 						state.parserAST.push.apply(state.parserAST,state.parseBuffer);
 						state.parserAST.push(tmpDuckNode);
 					}
+					
+					// Include the index of this node in its parents children...
+					tmpDuckNode.index = (state.currentNode ? state.currentNode.children.length : state.parserAST.length) -1;
 					
 					// Clear parse buffer.
 					state.parseBuffer = [];
@@ -1570,6 +1711,10 @@ function require(input) {
 					if (Grammar.replacer && Grammar.replacer instanceof Function) {
 						nodeText = nodeText.replace(Grammar.escapeCharacters,Grammar.replacer);
 					}
+					
+					// And we shouldn't accept newlines or tab characters as part of text.
+					// Replace all whitespace with plain old spaces.
+					nodeText = nodeText.replace(/\s+/," ");
 					
 					// Just push this node onto our return buffer
 					returnBuffer += nodeText;

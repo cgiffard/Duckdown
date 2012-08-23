@@ -3,7 +3,7 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Wed Aug 22 2012 16:06:40 GMT+1000 (EST)
+// Package built Thu Aug 23 2012 11:58:16 GMT+1000 (EST)
 // 
 
 
@@ -69,7 +69,8 @@ function require(input) {
 			"swallowTokens"		: false,
 			"exit"				: /\n/,
 			"state"				: "IMPLICIT_INDENT",
-			"semanticLevel"		: "hybrid"
+			"semanticLevel"		: "hybrid",
+			"allowSelfNesting"	: true
 		},
 		// Four spaces (equivalent to tab above)
 		"    ": {
@@ -79,7 +80,8 @@ function require(input) {
 			"swallowTokens"		: false,
 			"exit"				: /\n/,
 			"state"				: "IMPLICIT_INDENT",
-			"semanticLevel"		: "hybrid"
+			"semanticLevel"		: "hybrid",
+			"allowSelfNesting"	: true
 		},
 		// XML/HTML Entity...
 		"&": {
@@ -425,7 +427,7 @@ function require(input) {
 					
 					// If we don't have a prior sibling,
 					// we're not part of a larger paragraph!
-					} else if (!node.parent.previousSibling && !node.previousSibling) {
+				} else if (!node.parent.previousSibling && !node.previousSibling && node.parent.state !== "IMPLICIT_INDENT") {
 						compilePreformatted = true;
 					
 					// Or there was a double-line-break and the previous sibling was culled
@@ -507,9 +509,34 @@ function require(input) {
 						return -1;
 					}
 				}
+				
+				var nodePointer = node, indentAmount = 0;
+				while (nodePointer) {
+					if (nodePointer.state === "IMPLICIT_INDENT") {
+						indentAmount ++;
+					}
+					
+					nodePointer = nodePointer.parent;
+				}
+				
+				node.indentation = indentAmount;
+				
+				if (node.rootBlock &&
+					node.rootBlock.previousSibling &&
+					node.rootBlock.previousSibling.blockType === node.state &&
+					node.rootBlock.previousSibling.blockNode &&
+					node.rootBlock.previousSibling.blockNode.indentation < node.indentation) {
+					
+					// Add this node as a child of the last node.
+					node.rootBlock.previousSibling.blockNode.children.push(node);
+					node.rootBlock.remove();
+					node.breakBefore = true;
+				}
 			},
 			"compile": function(node,compiler) {
 				var buffer = "";
+				
+				if (node.breakBefore) buffer += "\n";
 				
 				if (!node.parent.previousSibling ||
 					node.parent.prevSiblingCulled ||
@@ -540,14 +567,16 @@ function require(input) {
 				return buffer;
 			}
 		},
-		
-		// NOT WORKING YET ---------------------------------------------------------------------------------------------------------
 		"LIST_ORDERED": {
 			"process": function(node) {
-				if (node.previousSibling && (typeof node.previousSibling === "object" || node.previousSibling.match(/[^a-z0-9]/g))) return -1;
+				if (node.previousSibling && (typeof node.previousSibling === "object" || node.previousSibling.match(/[^a-z0-9]/g))) {
+					return -1;
+				}
 				
 				// For now, ignore ordered lists that fall outside of implicit breaks or another construct.
-				if (!node.parent) return -1;
+				if (!node.parent) {
+					return -1;
+				}
 				
 				if (node.parent.previousSibling && typeof node.parent.previousSibling === "object") {
 					if (node.parent.previousSibling.state !== node.parent.state && !node.parent.prevSiblingCulled) {
@@ -561,6 +590,40 @@ function require(input) {
 					node.listQualifier = node.previousSibling;
 					node.parent.removeChild(node.index-1);
 					
+					var nodePointer = node, indentAmount = 0;
+					while (nodePointer) {
+						if (nodePointer.state === "IMPLICIT_INDENT") {
+							indentAmount ++;
+						}
+						
+						nodePointer = nodePointer.parent;
+					}
+					
+					node.indentation = indentAmount;
+					
+					if (node.rootBlock &&
+						node.rootBlock.previousSibling &&
+						node.rootBlock.previousSibling.blockType === node.state &&
+						node.rootBlock.previousSibling.blockNode &&
+						node.rootBlock.previousSibling.blockNode.indentation < node.indentation) {
+						
+						var parentList = node.rootBlock.previousSibling.blockNode;
+						
+						// Add this node as a child of the last node.
+						parentList.children.push(node);
+						node.rootBlock.remove();
+						
+						// Correct indices
+						parentList.updateIndices();
+						
+						if (parentList.children[node.index-1] &&
+							(typeof parentList.children[node.index-1] !== "object"	||
+							parentList.children[node.index-1].state !== node.state	)) {
+						
+							node.breakBefore = true;
+						}
+					}
+					
 					return true;
 				}
 				
@@ -569,6 +632,8 @@ function require(input) {
 			},
 			"compile": function(node,compiler) {
 				var buffer = "";
+				
+				if (node.breakBefore) buffer += "\n";
 				
 				if (!node.parent.previousSibling ||
 					node.parent.prevSiblingCulled ||
@@ -1057,7 +1122,7 @@ function require(input) {
 				});
 		
 		// Update node indices
-		updateIndices(filterTree);
+		updateIndicies(filterTree);
 		
 		if (this.previousSibling)
 			this.previousSibling.nextSibling = this.nextSibling;
@@ -1594,6 +1659,24 @@ function require(input) {
 					
 					// Include the index of this node in its parents children...
 					tmpDuckNode.index = (state.currentNode ? state.currentNode.children.length : state.parserAST.length) -1;
+					
+					// Are we a block element? Mark our ancestors as a parents of a block level element, and store the block type.
+					if (tokenGenus.semanticLevel === "block" || tokenGenus.semanticLevel === "textblock") {
+						var tmpNodePointer = state.currentNode;
+						while(tmpNodePointer !== null) {
+							tmpNodePointer.blockParent = true;
+							tmpNodePointer.blockType = tokenGenus.state;
+							
+							// Make a two-way link between the original ancestor and the child.
+							if (!tmpNodePointer.parent) {
+								tmpNodePointer.blockNode = tmpDuckNode;
+								tmpDuckNode.rootBlock = tmpNodePointer;
+							}
+							
+							// up a level...
+							tmpNodePointer = tmpNodePointer.parent;
+						}
+					}
 					
 					// Clear parse buffer.
 					state.parseBuffer = [];

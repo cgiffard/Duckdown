@@ -404,7 +404,7 @@
 					
 					// If we don't have a prior sibling,
 					// we're not part of a larger paragraph!
-					} else if (!node.parent.previousSibling && !node.previousSibling) {
+				} else if (!node.parent.previousSibling && !node.previousSibling && node.parent.state !== "IMPLICIT_INDENT") {
 						compilePreformatted = true;
 					
 					// Or there was a double-line-break and the previous sibling was culled
@@ -486,9 +486,34 @@
 						return -1;
 					}
 				}
+				
+				var nodePointer = node, indentAmount = 0;
+				while (nodePointer) {
+					if (nodePointer.state === "IMPLICIT_INDENT") {
+						indentAmount ++;
+					}
+					
+					nodePointer = nodePointer.parent;
+				}
+				
+				node.indentation = indentAmount;
+				
+				if (node.rootBlock &&
+					node.rootBlock.previousSibling &&
+					node.rootBlock.previousSibling.blockType === node.state &&
+					node.rootBlock.previousSibling.blockNode &&
+					node.rootBlock.previousSibling.blockNode.indentation < node.indentation) {
+					
+					// Add this node as a child of the last node.
+					node.rootBlock.previousSibling.blockNode.children.push(node);
+					node.rootBlock.remove();
+					node.breakBefore = true;
+				}
 			},
 			"compile": function(node,compiler) {
 				var buffer = "";
+				
+				if (node.breakBefore) buffer += "\n";
 				
 				if (!node.parent.previousSibling ||
 					node.parent.prevSiblingCulled ||
@@ -542,6 +567,40 @@
 					node.listQualifier = node.previousSibling;
 					node.parent.removeChild(node.index-1);
 					
+					var nodePointer = node, indentAmount = 0;
+					while (nodePointer) {
+						if (nodePointer.state === "IMPLICIT_INDENT") {
+							indentAmount ++;
+						}
+						
+						nodePointer = nodePointer.parent;
+					}
+					
+					node.indentation = indentAmount;
+					
+					if (node.rootBlock &&
+						node.rootBlock.previousSibling &&
+						node.rootBlock.previousSibling.blockType === node.state &&
+						node.rootBlock.previousSibling.blockNode &&
+						node.rootBlock.previousSibling.blockNode.indentation < node.indentation) {
+						
+						var parentList = node.rootBlock.previousSibling.blockNode;
+						
+						// Add this node as a child of the last node.
+						parentList.children.push(node);
+						node.rootBlock.remove();
+						
+						// Correct indices
+						parentList.updateIndices();
+						
+						if (parentList.children[node.index-1] &&
+							(typeof parentList.children[node.index-1] !== "object"	||
+							parentList.children[node.index-1].state !== node.state	)) {
+						
+							node.breakBefore = true;
+						}
+					}
+					
 					return true;
 				}
 				
@@ -550,6 +609,8 @@
 			},
 			"compile": function(node,compiler) {
 				var buffer = "";
+				
+				if (node.breakBefore) buffer += "\n";
 				
 				if (!node.parent.previousSibling ||
 					node.parent.prevSiblingCulled ||

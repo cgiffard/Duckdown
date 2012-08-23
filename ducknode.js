@@ -137,7 +137,7 @@
 				});
 		
 		// Update node indices
-		updateIndices(filterTree);
+		updateIndicies(filterTree);
 		
 		if (this.previousSibling)
 			this.previousSibling.nextSibling = this.nextSibling;

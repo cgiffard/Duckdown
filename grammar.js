@@ -500,14 +500,44 @@
 				
 				if (node.rootBlock &&
 					node.rootBlock.previousSibling &&
-					node.rootBlock.previousSibling.blockType === node.state &&
 					node.rootBlock.previousSibling.blockNode &&
+					(
+						node.rootBlock.previousSibling.semanticLevel === "hybrid" ||
+						node.rootBlock.previousSibling.semanticLevel === "textblock" ||
+						node.rootBlock.previousSibling.semanticLevel === "block"
+						) &&
 					node.rootBlock.previousSibling.blockNode.indentation < node.indentation) {
 					
+					var parentList = node.rootBlock.previousSibling.blockNode;
+					
+					while (	parentList.children.length &&
+							typeof parentList.children[parentList.children.length-1] === "object" &&
+							(
+								parentList.children[parentList.children.length-1].semanticLevel === "hybrid" ||
+								parentList.children[parentList.children.length-1].semanticLevel === "textblock" ||
+								parentList.children[parentList.children.length-1].semanticLevel === "block"
+							)) {
+						
+						if (parentList.children[parentList.children.length-1].indentation !== null &&
+							parentList.children[parentList.children.length-1].indentation >= node.indentation) break;
+						
+						parentList = parentList.children[parentList.children.length-1];
+					}
+					
 					// Add this node as a child of the last node.
-					node.rootBlock.previousSibling.blockNode.children.push(node);
+					parentList.children.push(node);
+					parentList.blockParent = true;
 					node.rootBlock.remove();
-					node.breakBefore = true;
+					
+					// Correct indices
+					parentList.updateIndices();
+					
+					if (parentList.children[node.index-1] &&
+						(typeof parentList.children[node.index-1] !== "object"	||
+						parentList.children[node.index-1].state !== node.state	)) {
+					
+						node.breakBefore = true;
+					}
 				}
 			},
 			"compile": function(node,compiler) {
@@ -580,14 +610,34 @@
 					
 					if (node.rootBlock &&
 						node.rootBlock.previousSibling &&
-						node.rootBlock.previousSibling.blockType === node.state &&
 						node.rootBlock.previousSibling.blockNode &&
+						(
+							node.rootBlock.previousSibling.semanticLevel === "hybrid" ||
+							node.rootBlock.previousSibling.semanticLevel === "textblock" ||
+							node.rootBlock.previousSibling.semanticLevel === "block"
+							) &&
 						node.rootBlock.previousSibling.blockNode.indentation < node.indentation) {
 						
 						var parentList = node.rootBlock.previousSibling.blockNode;
 						
+						while (	parentList.children.length &&
+								typeof parentList.children[parentList.children.length-1] === "object" &&
+								(
+									parentList.children[parentList.children.length-1].semanticLevel === "hybrid" ||
+									parentList.children[parentList.children.length-1].semanticLevel === "textblock" ||
+									parentList.children[parentList.children.length-1].semanticLevel === "block"
+								)) {
+							
+							
+							if (parentList.children[parentList.children.length-1].indentation !== null &&
+								parentList.children[parentList.children.length-1].indentation >= node.indentation) break;
+							
+							parentList = parentList.children[parentList.children.length-1];
+						}
+						
 						// Add this node as a child of the last node.
 						parentList.children.push(node);
+						parentList.blockParent = true;
 						node.rootBlock.remove();
 						
 						// Correct indices
@@ -634,7 +684,7 @@
 					buffer += "<ol" + listType + ">\n";
 				}
 				
-				buffer += "<li>" + compiler(node) + "</li>\n";
+				buffer += "<li>" + compiler(node) + (node.blockParent ? "\n" : "") + "</li>\n";
 				
 				if (!node.parent.nextSibling ||
 					node.parent.nextSiblingCulled ||

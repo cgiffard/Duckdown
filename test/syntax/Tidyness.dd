@@ -3,3 +3,30 @@
 > *	asterisk 1
 > *	asterisk 2
 > *	asterisk 3
+
+> This is a nested blockquote containing nested lists.
+>> Here's another blockquote.
+>> * Here's a bullet. This should be considered part of the above paragraph, and the bullet should be ignored.
+>>
+>> * This bullet should be respected.
+>> * This bullet should be grouped with the above, in a UL.
+>>	1. This is a child of the bullet. It should be a regular ordered list.
+>>	2. This should be grouped under the same ordered list.
+>>	3. This is the third item.
+>>		i. This should be a Roman-Numeral list, lowercase.
+>>		ii. This should be the second item in the roman list.
+>>		iii. Third item.
+>>			> This is a blockquote that falls inside the third item.
+>>			> This is part of the same blockquote.
+>>			> * This is a bulletted list in the blockquote in the roman list in the ordered list in the bulletted list in the double nested blockquote.
+>>			>	This should be added to the above.
+>>		iv. Fourth item.
+>>			Something inside the fourth item, http://www.example.com (a link perhaps?)
+>>	4. Another item in the ordered list.
+>> * Bulletted list, final item.
+>>
+>> Inside the double blockquote.
+>
+> Inside the single blockquote.
+
+Outside the blockquote.

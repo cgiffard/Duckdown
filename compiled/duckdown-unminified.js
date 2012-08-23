@@ -3,7 +3,7 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Thu Aug 23 2012 13:53:50 GMT+1000 (EST)
+// Package built Fri Aug 24 2012 09:08:20 GMT+1000 (EST)
 // 
 
 
@@ -510,6 +510,15 @@ function require(input) {
 					}
 				}
 				
+				if (node.rootBlock &&
+					node.rootBlock.previousSibling &&
+					!node.rootBlock.prevSiblingCulled &&
+					node.rootBlock.previousSibling.blockType !== node.state &&
+					node.rootBlock.previousSibling.blockType !== "LIST_ORDERED") {
+					
+					return -1;
+				}
+				
 				var nodePointer = node, indentAmount = 0;
 				while (nodePointer) {
 					if (nodePointer.state === "IMPLICIT_INDENT") {
@@ -612,6 +621,15 @@ function require(input) {
 					if (node.parent.previousSibling.state !== node.parent.state && !node.parent.prevSiblingCulled) {
 						return -1;
 					}
+				}
+				
+				if (node.rootBlock &&
+					node.rootBlock.previousSibling &&
+					!node.rootBlock.prevSiblingCulled &&
+					node.rootBlock.previousSibling.blockType !== node.state &&
+					node.rootBlock.previousSibling.blockType !== "LIST_UNORDERED") {
+					
+					return -1;
 				}
 				
 				if (node.previousSibling && node.previousSibling.match(/^[a-z0-9]+$/) && node.index < 2) {
@@ -728,26 +746,38 @@ function require(input) {
 			"process": function(node) {
 				if (node.previousSibling) return -1;
 				
+				// Get nesting depth
+				var nestDepth = 0, nodePointer = node;
+				while (nodePointer && nestDepth ++)
+					nodePointer = nodePointer.parent;
+				
+				
+				if (node.blockRoot) {
+					
+				}
+				
+				
+				
 				// Check to see whether we contain an alternate block or hybrid level element.
 				// If so, mark as such for future processing!
-				node.blockParent = false;
+				//node.blockParent = false;
 				
-				// This is a flat scan. A deep scan would be silly. (famous last words?)
-				for (var childIndex = 0; childIndex < node.children.length; childIndex ++) {
-					if (node.children[childIndex] instanceof Object &&
-						node.children[childIndex].semanticLevel !== "hybrid" && 
-						node.children[childIndex].semanticLevel !== "text") {
-						
-						node.blockParent = true;
-						break;
-					
-					// And we don't compile a wrapper around implicit indents either.
-					} else if (node.children[childIndex].state === "IMPLICIT_INDENT") {
-						
-						node.blockParent = true;
-						break;
-					}
-				}
+				//// This is a flat scan. A deep scan would be silly. (famous last words?)
+				//for (var childIndex = 0; childIndex < node.children.length; childIndex ++) {
+				//	if (node.children[childIndex] instanceof Object &&
+				//		node.children[childIndex].semanticLevel !== "hybrid" && 
+				//		node.children[childIndex].semanticLevel !== "text") {
+				//		
+				//		node.blockParent = true;
+				//		break;
+				//	
+				//	// And we don't compile a wrapper around implicit indents either.
+				//	} else if (node.children[childIndex].state === "IMPLICIT_INDENT") {
+				//		
+				//		node.blockParent = true;
+				//		break;
+				//	}
+				//}
 			},
 			"compile": function(node,compiler) {
 				var buffer = "";
@@ -1925,6 +1955,13 @@ function require(input) {
 			// Check whether current node is valid against text-match requirement (if applicable)
 			if (!tmpTokenGenus.validIf.exec(state.currentNode.raw())) {
 				state.emit("nodeinvalid",state.currentNode,tmpTokenGenus.validIf,state.currentNode.raw());
+				
+				if (state.currentNode.rootBlock) {
+					state.currentNode.rootBlock.blockParent = false;
+					state.currentNode.rootBlock.blockType = null;
+					state.currentNode.rootBlock.blockNode = null;
+				}
+				
 				nodeInvalid = true;
 			}
 		}
@@ -1954,6 +1991,13 @@ function require(input) {
 					// Remove next-sibling reference!
 					state.currentNode.previousSibling.nextSibling = null;
 				}
+				
+				// And remove block relationships...
+				if (state.currentNode.rootBlock) {
+					state.currentNode.rootBlock.blockParent = false;
+					state.currentNode.rootBlock.blockType = null;
+					state.currentNode.rootBlock.blockNode = null;
+				}
 			}
 			
 			// OK, well if the return value wasn't explicitly false, maybe it was -1.
@@ -1961,6 +2005,13 @@ function require(input) {
 			// components in the document as plain text.
 			if (returnVal === -1) {
 				state.emit("nodeinvalid",state.currentNode);
+				
+				// Remove block relationships...
+				if (state.currentNode.rootBlock) {
+					state.currentNode.rootBlock.blockParent = false;
+					state.currentNode.rootBlock.blockType = null;
+					state.currentNode.rootBlock.blockNode = null;
+				}
 				nodeInvalid = true;
 			}
 		}

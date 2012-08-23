@@ -487,6 +487,15 @@
 					}
 				}
 				
+				if (node.rootBlock &&
+					node.rootBlock.previousSibling &&
+					!node.rootBlock.prevSiblingCulled &&
+					node.rootBlock.previousSibling.blockType !== node.state &&
+					node.rootBlock.previousSibling.blockType !== "LIST_ORDERED") {
+					
+					return -1;
+				}
+				
 				var nodePointer = node, indentAmount = 0;
 				while (nodePointer) {
 					if (nodePointer.state === "IMPLICIT_INDENT") {
@@ -589,6 +598,15 @@
 					if (node.parent.previousSibling.state !== node.parent.state && !node.parent.prevSiblingCulled) {
 						return -1;
 					}
+				}
+				
+				if (node.rootBlock &&
+					node.rootBlock.previousSibling &&
+					!node.rootBlock.prevSiblingCulled &&
+					node.rootBlock.previousSibling.blockType !== node.state &&
+					node.rootBlock.previousSibling.blockType !== "LIST_UNORDERED") {
+					
+					return -1;
 				}
 				
 				if (node.previousSibling && node.previousSibling.match(/^[a-z0-9]+$/) && node.index < 2) {
@@ -705,26 +723,38 @@
 			"process": function(node) {
 				if (node.previousSibling) return -1;
 				
+				// Get nesting depth
+				var nestDepth = 0, nodePointer = node;
+				while (nodePointer && nestDepth ++)
+					nodePointer = nodePointer.parent;
+				
+				
+				if (node.blockRoot) {
+					
+				}
+				
+				
+				
 				// Check to see whether we contain an alternate block or hybrid level element.
 				// If so, mark as such for future processing!
-				node.blockParent = false;
+				//node.blockParent = false;
 				
-				// This is a flat scan. A deep scan would be silly. (famous last words?)
-				for (var childIndex = 0; childIndex < node.children.length; childIndex ++) {
-					if (node.children[childIndex] instanceof Object &&
-						node.children[childIndex].semanticLevel !== "hybrid" && 
-						node.children[childIndex].semanticLevel !== "text") {
-						
-						node.blockParent = true;
-						break;
-					
-					// And we don't compile a wrapper around implicit indents either.
-					} else if (node.children[childIndex].state === "IMPLICIT_INDENT") {
-						
-						node.blockParent = true;
-						break;
-					}
-				}
+				//// This is a flat scan. A deep scan would be silly. (famous last words?)
+				//for (var childIndex = 0; childIndex < node.children.length; childIndex ++) {
+				//	if (node.children[childIndex] instanceof Object &&
+				//		node.children[childIndex].semanticLevel !== "hybrid" && 
+				//		node.children[childIndex].semanticLevel !== "text") {
+				//		
+				//		node.blockParent = true;
+				//		break;
+				//	
+				//	// And we don't compile a wrapper around implicit indents either.
+				//	} else if (node.children[childIndex].state === "IMPLICIT_INDENT") {
+				//		
+				//		node.blockParent = true;
+				//		break;
+				//	}
+				//}
 			},
 			"compile": function(node,compiler) {
 				var buffer = "";

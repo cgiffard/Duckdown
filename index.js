@@ -690,6 +690,13 @@
 			// Check whether current node is valid against text-match requirement (if applicable)
 			if (!tmpTokenGenus.validIf.exec(state.currentNode.raw())) {
 				state.emit("nodeinvalid",state.currentNode,tmpTokenGenus.validIf,state.currentNode.raw());
+				
+				if (state.currentNode.rootBlock) {
+					state.currentNode.rootBlock.blockParent = false;
+					state.currentNode.rootBlock.blockType = null;
+					state.currentNode.rootBlock.blockNode = null;
+				}
+				
 				nodeInvalid = true;
 			}
 		}
@@ -719,6 +726,13 @@
 					// Remove next-sibling reference!
 					state.currentNode.previousSibling.nextSibling = null;
 				}
+				
+				// And remove block relationships...
+				if (state.currentNode.rootBlock) {
+					state.currentNode.rootBlock.blockParent = false;
+					state.currentNode.rootBlock.blockType = null;
+					state.currentNode.rootBlock.blockNode = null;
+				}
 			}
 			
 			// OK, well if the return value wasn't explicitly false, maybe it was -1.
@@ -726,6 +740,13 @@
 			// components in the document as plain text.
 			if (returnVal === -1) {
 				state.emit("nodeinvalid",state.currentNode);
+				
+				// Remove block relationships...
+				if (state.currentNode.rootBlock) {
+					state.currentNode.rootBlock.blockParent = false;
+					state.currentNode.rootBlock.blockType = null;
+					state.currentNode.rootBlock.blockNode = null;
+				}
 				nodeInvalid = true;
 			}
 		}

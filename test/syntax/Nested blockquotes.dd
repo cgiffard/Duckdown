@@ -9,3 +9,9 @@
 > This should appear on the same line.
 >
 > This should be a new paragraph.
+
+> This blockquote is nested.
+>> This is a blockquote inside a blockquote.
+>> This should be grouped with the above.
+>>
+>> This is in the same blockquote, but a new paragraph.

@@ -476,7 +476,10 @@
 					tmpDuckNode.index = (state.currentNode ? state.currentNode.children.length : state.parserAST.length) -1;
 					
 					// Are we a block element? Mark our ancestors as a parents of a block level element, and store the block type.
-					if (tokenGenus.semanticLevel === "block" || tokenGenus.semanticLevel === "textblock") {
+					if (tokenGenus.semanticLevel === "block" ||
+						tokenGenus.semanticLevel === "textblock" ||
+						tokenGenus.state === "IMPLICIT_INDENT") {
+						
 						var tmpNodePointer = state.currentNode;
 						while(tmpNodePointer !== null) {
 							tmpNodePointer.blockParent = true;
@@ -716,7 +719,7 @@
 				state.currentNode.culled = true;
 				// We record that we culled the node - and what its state was
 				state.prevNodeCulled = true;
-				state.prevCullState = state.currentNode.state;
+				state.prevCullState = state.currentNode.blockType || state.currentNode.state;
 				
 				// We also take this opportunity to tell this node's previous sibling that we culled (this one.)
 				if (state.currentNode.previousSibling) {

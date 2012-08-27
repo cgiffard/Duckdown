@@ -1,3 +1,5 @@
+![Duckdown](http://cgiffard.github.com/Duckdown/logo.jpg)
+
 Duckdown [![Build Status](https://secure.travis-ci.org/cgiffard/Duckdown.png)](http://travis-ci.org/cgiffard/Duckdown)
 ========
 
@@ -18,7 +20,8 @@ Some aspects of Markdown were omitted or changed as we felt they were they were 
 Like Markdown, Duckdown is primarily a line-based language. Inline text styling and linking are similar. Remember that
 this document describes the *default* Duckdown grammar, and the parser is not necessarily bound by these same limitations or patterns.
 
-### Bold, Italic, Underline, and Strikethrough <small>*Semantic Level: text*</small>
+### Bold, Italic, Underline, and Strikethrough
+*Semantic Level: text*
 
 Bold, italic, and underline are specified by prepending a string of text with a token, and closing a given string with the same token.
 
@@ -38,7 +41,8 @@ Duckdown is quite strict in what it considers valid. You may not wrap a text sty
 (they directly abut a word or non-significant token) will be ignored. Closing tokens which do not directly abut the string of text they close will be ignored.
 Text-level tags which are not closed are considered invalid. Mismatched nesting is also considered invalid.
 
-### Headings <small>*Semantic Level: textblock*</small>
+### Headings
+*Semantic Level: textblock*
 
 Headings in Duckdown are described in only one way - by a tag at the beginning of the line, like so:
 
@@ -48,7 +52,8 @@ Headings in Duckdown are described in only one way - by a tag at the beginning o
 	
 Headings may contain inline tagging/styling, such as emphasis, strikethrough, or a link. Duckdown supports headings one (h1.) through six (h6.)
 
-### Links <small>*Semantic Level: text*</small>
+### Links
+*Semantic Level: text*
 
 The primary rationale behind the Duckdown link syntax design is ease of use (and readability.) Secondarily, content archival and maintainability.
 
@@ -65,7 +70,8 @@ It is possible to include any inline text styles in the link text.
 
 	https://example.com/sinisterconspiracy.html (Recently, I chanced upon a sinister Mafia conspiracy involving none other than ~*The Queen herself!*~)
 
-### Horizontal Rules <small>*Semantic Level: text*</small>
+### Horizontal Rules
+*Semantic Level: block*
 
 Horizontal rules can be embedded in any block element. Simply connect three dashes (`---`) like so:
 
@@ -74,8 +80,9 @@ Horizontal rules can be embedded in any block element. Simply connect three dash
 You may use the horizontal rule syntax in blockquotes and lists (among other block elements.)
 
 ### Lists
+*Semantic Level: textblock*
 
-#### Bulletted / Unordered Lists
+##### Bulletted / Unordered Lists
 
 Bulletted (unordered) lists in Duckdown are very similar to those in Markdown. Simply begin a line with an asterisk (and then some whitespace) like so:
 
@@ -111,7 +118,46 @@ Lists may be nested by indenting them - either by a single tab or four spaces.
 		* Both this line and the next will be rendered as second-level list items.
 			* Here's a third-level item!
 
-#### Numbered/Ordered Lists
+##### Numbered/Ordered Lists
+
+Unlike ordered lists in Markdown, Duckdown supports flexible list tokens designed to make the raw Duckdown much easier to read. It also explicitly supports three different list types:
+
+* Numeric - the default display style for a regular ordered list.
+* Lower, roman - lowercase roman numerals
+* Alphabetical, lowercase
+
+In order to specify the list type, just use a letter, number, or romal numeral accordingly - and then a full stop (period) and some whitespace.
+
+	1. Ordered List 1
+	2. Ordered List 2
+	3. Ordered List 3
+	
+	a. Important legal subsection a!
+	b. Important legal subsection b!
+	c. Important legal subsection c!
+	
+	i. Important roman-numeral list!
+	ii. Important...
+	iii. Roman...
+	iv. Numeral...
+	v. List!
+	
+Duckdown automatically determines the list type based on the first item in the list. Consider a list which changes types halfway through, like so:
+
+	a. Alphabetic item!
+	ii. Roman Numeral Item!
+	3. Regular Numbered Item!
+	
+In this case, the first item in the list takes precedence, and the whole list is ordered alphabetically.
+
+This restriction does not apply to nested lists - you may nest ordered lists inside any other block element or list - just as you would an ordered list.
+
+	1. Item 1
+		a. Alphabetic list nested beneath regular ordered list
+		b. Item b.
+	2. Item 2
+		i. Roman numeral sub-list!
+			* And of course, it's possible to nest bullets as well.
 
 ### Blockquotes
 

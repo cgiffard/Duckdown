@@ -161,7 +161,42 @@ This restriction does not apply to nested lists - you may nest ordered lists ins
 
 ### Blockquotes
 
+Duckdown supports blockquotes as multiple concurrent lines prepended with a caret '>'.
+
+	This text is outside the blockquote.
+	
+	> This text is inside the blockquote. The text in 
+	> blockquotes is also consolidated into paragraphs
+	> just like regular text.
+	>
+	> Separated by a blank line, this is a new paragraph
+	> inside the blockquote.
+	
+	This text is outside the blockquote.
+
+You may add attribution to the blockquote by appending a citation on the following like like so:
+
+	> The march of science and technology does not imply growing
+	> intellectual complexity in the lives of most people.
+	> It often means the opposite.
+	-- Thomas Sowell
+	
+This adds a new paragraph with a linked `<cite>` tag.
+
+You may also nest blockquotes:
+
+	> Two hours ago, MATSUMOTO Hiroshi wrote:
+	>
+	> I don't agree with your assertion as stated in your last email:
+	>
+	>> Four hours ago, Jacob Slim wrote:
+	>>
+	>> Shouldn't the API endpoint be idempotent regardless of the version?
+	>> This is a data integrity issue.
+
 ### Feathers
+
+
 
 ### A word on text and block-level semantics
 
@@ -180,6 +215,7 @@ Using Duckdown
 
 In The Browser
 --------------
+
 
 
 CLI

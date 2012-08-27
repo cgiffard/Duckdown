@@ -739,8 +739,29 @@
 					}
 					
 					if (newNodeParent) {
-						node.rootBlock.previousSibling.blockNode.children.push(node);
-						node.rootBlock.remove();
+						// We wanna keep our implicit break around. So we invert the tree! Nuts!
+						// Before: IMPLICIT_BREAK -> BLOCKQUOTE -> CHILDREN
+						// After:  BLOCKQUOTE -> IMPLICIT_BREAK -> CHILDREN
+						// Then we add the blockquote to the tree of our previous node.
+						
+						// Save for future reference.
+						var root = node.rootBlock, previousSibling = root.previousSibling;
+						
+						// Remove this node from the tree.
+						root.remove();
+						
+						// Dump our children directly into the root node
+						root.children = node.children;
+						
+						// Now add the implicit break as a child of our node.
+						node.children = [root];
+						
+						
+						previousSibling.blockNode.children.push(node);
+						
+						// console.log(node);
+						
+						
 					}
 					
 					

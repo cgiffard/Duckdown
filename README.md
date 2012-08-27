@@ -18,7 +18,7 @@ Some aspects of Markdown were omitted or changed as we felt they were they were 
 Like Markdown, Duckdown is primarily a line-based language. Inline text styling and linking are similar. Remember that
 this document describes the *default* Duckdown grammar, and the parser is not necessarily bound by these same limitations or patterns.
 
-### Bold, Italic, Underline, and Strikethrough
+### Bold, Italic, Underline, and Strikethrough <small>*Semantic Level: text*</small>
 
 Bold, italic, and underline are specified by prepending a string of text with a token, and closing a given string with the same token.
 
@@ -38,7 +38,7 @@ Duckdown is quite strict in what it considers valid. You may not wrap a text sty
 (they directly abut a word or non-significant token) will be ignored. Closing tokens which do not directly abut the string of text they close will be ignored.
 Text-level tags which are not closed are considered invalid. Mismatched nesting is also considered invalid.
 
-### Headings
+### Headings <small>*Semantic Level: textblock*</small>
 
 Headings in Duckdown are described in only one way - by a tag at the beginning of the line, like so:
 
@@ -48,7 +48,7 @@ Headings in Duckdown are described in only one way - by a tag at the beginning o
 	
 Headings may contain inline tagging/styling, such as emphasis, strikethrough, or a link. Duckdown supports headings one (h1.) through six (h6.)
 
-### Links
+### Links <small>*Semantic Level: text*</small>
 
 The primary rationale behind the Duckdown link syntax design is ease of use (and readability.) Secondarily, content archival and maintainability.
 
@@ -65,13 +65,55 @@ It is possible to include any inline text styles in the link text.
 
 	https://example.com/sinisterconspiracy.html (Recently, I chanced upon a sinister Mafia conspiracy involving none other than ~*The Queen herself!*~)
 
+### Horizontal Rules <small>*Semantic Level: text*</small>
 
+Horizontal rules can be embedded in any block element. Simply connect three dashes (`---`) like so:
 
-*more to come......*
+	---
 
-### Horizontal Rules
+You may use the horizontal rule syntax in blockquotes and lists (among other block elements.)
 
-### Lists & Blockquotes
+### Lists
+
+#### Bulletted / Unordered Lists
+
+Bulletted (unordered) lists in Duckdown are very similar to those in Markdown. Simply begin a line with an asterisk (and then some whitespace) like so:
+
+	* Oranges;
+	* Apples,
+	* Pears, and
+	* Potatoes.
+
+You must give the list some breathing room - it either has to be the first thing in the document, a direct child (and the first element) of a block level item like another list or blockquote, or be preceded by a blank line. The following is valid, and will be rendered as an unordered list:
+
+	Here's a preceding paragraph. This is followed by a blank line.
+	
+	* Here's a list item.
+	* Here's another list item. These will be rendered correctly.
+
+On the other hand, without the blank line, the list will be interpreted as a continuation of the previous paragraph. The Duckdown snippet below:
+
+	Here's a preceding paragraph. No blank line here, punks!
+	* What are you expecting?
+	* Hopefully not a UL here!
+	* You'll be disappointed!
+
+will be rendered as so in HTML:
+
+	<p>Here's a preceding paragraph. No blank line here, punks! * What are you expecting? * Hopefully not a UL here! * You'll be disappointed!</p>
+	
+Failing to add whitespace after the asterisk will also prevent it from being considered a list item.
+
+Lists may be nested by indenting them - either by a single tab or four spaces.
+
+	* Here's a root-level list item.
+		* Without leaving a blank line above, the next line is indented.
+		* Both this line and the next will be rendered as second-level list items.
+			* Here's a third-level item!
+
+#### Numbered/Ordered Lists
+
+### Blockquotes
 
 ### Feathers
 
@@ -82,6 +124,10 @@ BLOCK!
 ### A word on encoding
 
 ENCODING!
+
+### A word on indentation
+
+
 
 Using Duckdown
 ==============

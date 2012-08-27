@@ -7,7 +7,7 @@ Ultra-simple Markdown-inspired markup language, implemented initially in JS (tar
 
 Duckdown has a difference though - it doesn't work through naive regex hacks: It's a proper recursive descendant parser/state machine with a customisable grammar!
 
-You can use it as is, extend it, or build your very own text markup language with it.
+**You can use it as is, extend it, or build your very own text markup language with it.**
 
 Writing with Duckdown
 ----------------------
@@ -193,10 +193,53 @@ You may also nest blockquotes:
 	>>
 	>> Shouldn't the API endpoint be idempotent regardless of the version?
 	>> This is a data integrity issue.
+	>
+	> This isn't a data integrity issue - this is about making things
+	> easy to understand for app developers.
+	
+### Preformatted Text
+
+Preformatted text works in exactly the same way as Markdown: indent each line of a preformatted block with either a single tab or four spaces. In the example below, consider `\t` equal to one tab character.
+
+	\tHere's a block of preformatted text.
+	\tHere's another line. No further processing occurrs in this region.
 
 ### Feathers
 
+One of the key considerations leading to the development of Duckdown (as opposed to using Markdown) was extensibility.
+We needed a way to incorporate extra functionality into the syntax without polluting it, and since the language is designed to be independent from HTML, we could not use HTML to cover these use cases.
 
+Some examples of this functionality might be:
+
+* Tweet (or social) buttons
+* Inlining external content
+* Inline video
+* Image galleries and other embedded multimedia
+
+Because a lot of this content is also site or application specific, it didn't make sense to include it in the Duckdown core either.
+
+Instead, I created a method of calling external JavaScript procedures from Duckdown itself, (in keeping with the Duck theme) named *Feathers.*
+
+Feathers look similar to an HTML tag, with a different parameter syntax:
+
+	<feathername param:value paramtwo:value>
+	
+In this case, we've already registered a handler with Duckdown, with the name `feathername`. Duckdown chops up the parameters, and passes them to the feather function as a big object (containing strings.) In this case, such an object would look like the following:
+
+	{
+		"param": "value",
+		"paramtwo": "value"
+	}
+	
+It's totally up to the function defined as to how it handles the parameters. The content of the feather node is replaced with whatever it returns immediately upon execution - although asynchronous code in the handler can retain a reference to the node in question and act on it (mutate it in any way it wants!) before compilation.
+
+(The exact way in which feathers work is detailed further down the page.)
+
+The parameters may have spaces in the values, but not in the names. The parameter values need not be quoted, but the closing caret (`>`) character must be escaped or avoided.
+
+An example of real-word feather use could include embedding a video in the page:
+
+	<video external:true source:youtube id:v982fSFd2 showcomments:false>
 
 ### A word on text and block-level semantics
 

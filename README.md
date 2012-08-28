@@ -19,7 +19,8 @@ consequently unambiguous for authors.
 Some aspects of Markdown were omitted or changed as we felt they were they were 
 too complex for novice editors.
 
-**WARNING: You should consider the API and text-specification unstable until further notice. Hopefully everything will be formalised soon.**
+**WARNING: You should consider the API and text-specification unstable until
+further notice. Hopefully everything will be formalised soon.**
 
 Like Markdown, Duckdown is primarily a line-based language. Inline text styling 
 and linking are similar. Remember that
@@ -61,7 +62,8 @@ the line, like so:
 	
 	h2. This is heading 2 (With some ~emphasised~ text!)
 	
-Headings may contain inline tagging/styling, such as emphasis, strikethrough, or a link. Duckdown supports headings one (h1.) through six (h6.)
+Headings may contain inline tagging/styling, such as emphasis, strikethrough, or
+a link. Duckdown supports headings one (h1.) through six (h6.)
 
 ### Links
 *[Semantic Level:](#a-word-on-text-and-block-level-semantics) text*
@@ -344,10 +346,6 @@ output UCS-2 in a way that is functionally indistinguishable from UTF-8.)
 Any character which does not fit into the first 128 printable ASCII characters, or 
 is not permitted in XML will be escaped as XML/HTML hexadecimal entities.
 
-### A word on indentation
-
-INDENTATION!
-
 Using Duckdown
 ==============
 
@@ -381,7 +379,8 @@ CLI
 If you installed Duckdown globally, you should now have a `duck` CLI tool 
 available to you in your `$PATH`.
 
-Usage is simple. By default, the tool accepts uncompiled Duckdown on `STDIN` and pipes compiled HTML to `STDOUT`.
+Usage is simple. By default, the tool accepts uncompiled Duckdown on `STDIN` and
+pipes compiled HTML to `STDOUT`.
 
 You may specify a filename to compile:
 
@@ -394,7 +393,8 @@ Options:
 * **`-a`, `--ast`**
 	*<br />Outputs the Duckdown AST for the file or input, prior to parsing.*
 * **`-l`, `--log`**
-	*<br />Displays the Duckdown parse log, along with the cumulative execution time. Log items are gathered via parser events (See [Node API](#node-api))*
+	*<br />Displays the Duckdown parse log, along with the cumulative execution
+	time. Log items are gathered via parser events (See [Events](#events))*
 * **`-d`, `--disk`**
 	*<br />Write parse log to disk*
 * **`-v`, `--verbose`**
@@ -423,8 +423,60 @@ Example usage:
 	duck -b ./duckdown.js
 
 
-Node API
---------
+Using the Duckdown API
+----------------------
+
+Fundamentally, the Duckdown API is very simple. Depending on whether you're using 
+it with node or in the browser, the method of instantiation will be different - 
+but the subsequent use is the same across platforms.
+
+Basically, you'll want to create a new instance of the Duckdown parser. In node,
+you'll need to require it. In the browser, just include the compiled version of
+Duckdown ([you can find the latest build at Github.](https://raw.github.com/cgiffard/Duckdown/master/compiled/duckdown.js))
+
+	// Instantiating Duckdown in Node
+	var Duckdown = require("duckdown"),
+		duckdown = new Duckdown();
+	
+	// Instantiating Duckdown in the browser
+	var duckdown = new Duckdown();
+
+Assuming you've already got the text you want to compile in a variable,
+compilation can be as simple as one call:
+
+	var compiledHTML = duckdown.compile(myRawDuckdown);
+	
+There's a catch though - in order to enable streaming, the parser retains any
+input it receives, so subsequent compilations will include the Duckdown of the
+calls before them. You'll need to clear the parser object before compiling again:
+
+	duckdown.clear();
+	var myNewCompiledHTML = duckdown.compile(someOtherDocument);
+
+That's it! You're good to go.
+
+How Duckdown works
+------------------
+
+Still here? OK - Here's a little more about what this does.
+
+The above method hides a lot of complexity. Behind the scenes, a number of major functions are called:
+
+* **Duckdown.tokenise**<br />
+	Turns the raw text into tokens dictated by the grammar
+* **Duckdown.parse**<br />
+	Parses the tokens into an intermediary AST
+	* **Duckdown.parseToken**<br />
+		Called by the Duckdown parser, this function is responsible for the brunt 
+		of the work. It parses an individual token according to state stored in 
+		the Duckdown parser object itself.
+	* **Duckdown.completeParse**<br />
+		Finalises a parse operation (Technically speaking, it restores pointers to the AST root, closing any open nodes.)
+* **Duckdown.compile**<br />
+	Actually compiles the sourcecode. Recursively loops through the AST,
+	and calls out to compilation handlers defined by the grammar where required.
+
+### Events
 
 Events emitted by the Duckdown parser
 
@@ -444,22 +496,6 @@ Events emitted by the Duckdown parser
 Be aware that duckdown doesn't try and clean up after you. If you throw an error in an event listener, you'll kill the current operation at hand.
 
 
-Using Duckdown in the browser
------------------------------
-
-
-
-Building Duckdown
-------------------
-
-
-
-Writing a Duckdown Grammar
---------------------------
-
-
-How Duckdown works
-------------------
 
 Tokenisation
 
@@ -468,6 +504,11 @@ State stack
 Node invalidation!
 
 Node processing and self-destruction
+
+
+Writing a Duckdown Grammar
+--------------------------
+
 
 Licence & Credits
 ------------------

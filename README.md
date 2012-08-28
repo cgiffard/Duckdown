@@ -515,7 +515,7 @@ Licence & Credits
 
 **Who's responsible for this monstrosity!?**
 
-Christopher Giffard, with contributions to the test suite and language design by Daniel Nitsche. This project was undertaken at the Australian Department of Education, Employment, and Workplace Relations (but of course, any opinions expressed here or anywhere else are purely my own!)
+Christopher Giffard, with contributions to the test suite and language design by Daniel Nitsche.
 
 **And the licence? BSD 2-Clause!**
 

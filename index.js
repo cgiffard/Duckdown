@@ -192,7 +192,7 @@
 			this.tokenBuffer = "";
 		}
 		
-		this.emit("tokeniseend");
+		this.emit("tokeniseend",this.tokens);
 		
 		return this.tokens;
 	};

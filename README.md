@@ -290,7 +290,8 @@ upon execution - although asynchronous code in the handler can retain a
 reference to the node in question and act on it (mutate it in any way it wants!) 
 before compilation.
 
-The exact way in which feathers work [later in this document](#using-feathers).
+The exact way in which feathers work are described in more detail
+[later in this document](#using-feathers).
 
 The parameters may have spaces in the values, but not in the names. The
 parameter values need not be quoted, but the closing caret (`>`) character must
@@ -549,6 +550,9 @@ the character is classified according to whether it is a 'word' or 'non-word'
 character. 'Runs' of word and non-word characters are buffered and each run is
 converted into a token when the tokeniser state changes, or completes.
 
+You may use the `duck` CLI took to observe the token buffer for the document -
+see the [CLI](#cli) section for usage instructions.
+
 ### Parsing process
 
 The parsing process is initiated by `Duckdown.parse()`.
@@ -585,35 +589,108 @@ and mutates nodes depending on whether the grammar defines specific requirements
 for them that are only evaluable upon termination.
 
 If the current token hasn't been 'swallowed' by this process (used up when
-terminating an AST node) 
+terminating an AST node) then it will checked again against the grammar, to
+determine if a new node should be created for it.
+
+If a node is not created, the token is deemed to be 'text', and it is buffered.
+
+If a node is created, any currently buffered tokens are appended to the previous
+current node as 'children'. The new node is then also appended as a child, and
+initialised.
+
+The token pointer is then advanced by one, and the `parseToken` function is
+called again as required, until the token buffer is exhausted.
+
+You may use the `duck` CLI took to observe the final AST for the document -
+see the [CLI](#cli) section for usage instructions.
 
 ### Compilation
 
+Once an AST has been built, Duckdown can compile the document to HTML.
+
+Duckdown recursively loops downward through the AST, compiling each node and
+appending the result to a text buffer, which it then returns.
+
+Text tokens are [encoded](#a-word-on-encoding) and appended as is. Duckdown 
+nodes are compiled according to the rules defined in the grammar. If a node does 
+not have a compilation rule associated with it in the grammar, Duckdown will 
+simply descend into the node and compile its children.
+
+If the node does define a compilation rule, that rule may determine whether
+further descent occurs. Each compilation rule is passed a reference to the
+Duckdown compiler, which it can use to compile child nodes, or simply ignore.
+
 ### Events
 
-Events emitted by the Duckdown parser
+During the tokenising, parse, and compilation process, Duckdown emits a number
+of events which you can listen to in order to introspect the parser operation.
 
-* clear
-* tokenisestart
-* tokeniseend
-* parsestart
-* parseend
-* parsetoken
-* compilestart
-* compileend
-* addstate
-* nodeclosed
-* nodeinvalid
-* nodeselfdestruct
+Duckdown itself uses this to generate the parser event logs and performance
+profile that you can see in the [`duck` CLI tool.](#cli).
 
-Be aware that duckdown doesn't try and clean up after you. If you throw an error in an event listener, you'll kill the current operation at hand.
+Duckdown implements a kind of pseudo-EventEmitter (because this code also has to 
+run in the browser, and bundling the complete EventEmitter class was overkill!)
+which you can use like so:
+	
+	//  Listen to the parse token event
+	duckdown.on("parsetoken",function handler(currentToken) {
+		// do something
+		console.log("Looks like the token '%s' is being parsed!",currentToken);
+	});
 
 
-State stack
+Here's a list:
 
-Node invalidation!
+* **clear**<br />
+	Emitted when initialising the Duckdown parser object, or when the Duckdown
+	parser state is destroyed. No arguments.
+	
+* **tokenisestart**<br />
+	Emitted when the tokenising process begins. No arguments.
+	
+* **tokeniseend**<br />
+	Emitted when the tokenising process is completed. Hands a the resultant
+	token list over as the first argument.
+	
+* **parsestart**<br />
+	Emitted when the parsing process is initiated. No arguments.
+	
+* **parseend**<br />
+	Emitted when the parsing process completes. No arguments.
+	
+* **parsetoken**<br />
+	Emitted when Duckdown begins parsing a token. Passes the current token as
+	the first argument.
+	
+* **compilestart**<br />
+	Emitted when Duckdown begins compiling. No arguments.
+	
+* **compileend**<br />
+	Emitted when Duckdown completes compilation. Passes the final HTML document
+	as the first argument.
+	
+* **addstate**<br />
+	Emitted when Duckdown adds another state to its internal state stack. The
+	state name/ID in question is passed as the first argument.
+	
+* **nodeclosed**<br />
+	Emitted when Duckdown closes an AST node. A reference to the node itself is
+	passed as the first argument.
+	
+* **nodeinvalid**<br />
+	Emitted when a static grammar rule, or processing function determines that a 
+	node is invalid. The current node is passed as the first argument. If the
+	node was determined to be invalid by a regex condition, the condition will
+	be passed as the second argument, and the raw node source as the third.
+	
+* **nodeselfdestruct**<br />
+	Emitted when a node processing function determines that the node is invalid
+	and should be converted to text instead of remaining as a node. The node
+	in question is passed as the first parameter.
 
-Node processing and self-destruction
+Be aware that Duckdown doesn't try and clean up after you. If you throw an error 
+or do something untoward in an event listener, you'll kill the current operation 
+at hand.
 
 Building and Testing Duckdown
 -----------------------------
@@ -626,14 +703,24 @@ you can use to build the source for the browser. (See [CLI](#cli) for details.)
 The git repository also includes an up-to-date version of Duckdown built for the
 browser, in both minified and unminified form. (/compiled/duckdown.js)
 
-Duckdown uses mocha and chai to run its test suite, which aims to
-comprehensively represent and validate Duckdown's ability to test and 
+Duckdown uses mocha and chai to run its test suite. You can run the test suite
+with npm:
 
+	npm test
+	
+Or, with mocha itself for more flexibility
+
+	# Show just the syntax tests with the spec reporter
+	# - and watch for changes
+	mocha -w -R spec -g reference
+
+You can check the current build status at
+[Travis CI](http://travis-ci.org/cgiffard/Duckdown).
 
 Writing a Duckdown Grammar
 --------------------------
 
-The Duckdown Grammar, as it currently stands, exhausted the ability of its
+The Duckdown Grammar, as it currently stands, exhausted the ability of its own
 architecture/structure to keep it clean and organised.
 
 It is currently in the midst of being totally refactored to ensure it is clean,

@@ -290,7 +290,7 @@ upon execution - although asynchronous code in the handler can retain a
 reference to the node in question and act on it (mutate it in any way it wants!) 
 before compilation.
 
-(The exact way in which feathers work is detailed further down the page.)
+The exact way in which feathers work [later in this document](#using-feathers).
 
 The parameters may have spaces in the values, but not in the names. The
 parameter values need not be quoted, but the closing caret (`>`) character must
@@ -460,6 +460,40 @@ again:
 
 	duckdown.clear();
 	var myNewCompiledHTML = duckdown.compile(someOtherDocument);
+	
+### Using Feathers
+
+The syntax of feathers [was described earlier](#feathers), but feathers must be
+registered with Duckdown in order to be correctly parsed.
+
+A feather is a non-blocking JavaScript function which accepts an object hash of
+parameters defined by the Duckdown document being parsed, and returns a string
+to insert into the document (on compilation) over the top of the feather token.
+
+It receives a reference to the feather node itself, so it may mutate the node 
+later, in an asynchronous callback - but it must be non-blocking or it will
+totally destroy parsing and compilation performance.
+
+Feathers are registered with Duckdown using the `Duckdown.registerFeather()`
+method:
+	
+	var featherHandler = function(input,duckdown){
+		return "abc123";
+	};
+	
+	duckdown.registerFeather("myfeather",featherHandler,"text");
+
+The first parameter of the registration function is the name by which you would 
+access the feather from the Duckdown document itself (eg. `<myfeather>`.)
+
+The second parameter is the function to handle the feather.
+
+The third (optional) parameter describes the
+[semantic level](#a-word-on-text-and-block-level-semantics) of the feather
+result (since a feather could reasonably used inline with text, or as a block,
+like a video or image gallery.) This is used to support nesting behaviour.
+
+---
 
 That's it! You're good to go.
 
@@ -535,9 +569,23 @@ stream,) - you can pass a `leaveHanging` attribute to `Duckdown.parse()`:
 	// Duckdown.parse(input,leaveHanging);
 	duckdown.parse(null,true);
 
-
-
 #### Token Parsing
+
+The `Duckdown.parseToken()` function is called for each token, and recursively
+builds an AST from them. It is responsible for the bulk of the work Duckdown 
+does.
+
+Each time it is called, it observes the context it stores against the Duckdown
+parser object itself, and evaluates the current token according to that state.
+
+In order of execution, it first checks to see whether the current token
+terminates any existing state, and recursively closes any open AST nodes if
+applicable. At this point, it emits, for each closed node, any relevant events,
+and mutates nodes depending on whether the grammar defines specific requirements
+for them that are only evaluable upon termination.
+
+If the current token hasn't been 'swallowed' by this process (used up when
+terminating an AST node) 
 
 ### Compilation
 
@@ -561,9 +609,6 @@ Events emitted by the Duckdown parser
 Be aware that duckdown doesn't try and clean up after you. If you throw an error in an event listener, you'll kill the current operation at hand.
 
 
-
-Tokenisation
-
 State stack
 
 Node invalidation!
@@ -573,10 +618,28 @@ Node processing and self-destruction
 Building and Testing Duckdown
 -----------------------------
 
+At the moment, Duckdown only needs to be built for the browser, as the raw
+source form will work natively in node.
+
+When installed globally, Duckdown makes available a `duck` CLI tool, which
+you can use to build the source for the browser. (See [CLI](#cli) for details.)
+The git repository also includes an up-to-date version of Duckdown built for the
+browser, in both minified and unminified form. (/compiled/duckdown.js)
+
+Duckdown uses mocha and chai to run its test suite, which aims to
+comprehensively represent and validate Duckdown's ability to test and 
+
 
 Writing a Duckdown Grammar
 --------------------------
 
+The Duckdown Grammar, as it currently stands, exhausted the ability of its
+architecture/structure to keep it clean and organised.
+
+It is currently in the midst of being totally refactored to ensure it is clean,
+understandable, and maintainable.
+
+When this process is complete, the new architecture will be documented. Sorry!
 
 Licence & Credits
 ------------------

@@ -6,10 +6,12 @@ Duckdown [![Build Status](https://secure.travis-ci.org/cgiffard/Duckdown.png)](h
 Ultra-simple Markdown-inspired markup language, implemented initially in JS 
 (targeting both the browser and node.)
 
-Duckdown has a difference though - it doesn't work through naive regex hacks: It's 
-a proper recursive descendant parser/state machine with a customisable grammar!
+Duckdown has a difference though - it doesn't work through naive regex hacks:
+It's a proper recursive descendant parser/state machine with a customisable
+grammar!
 
-**You can use it as is, extend it, or build your very own text markup language with it.**
+**You can use it as is, extend it, or build your very own text markup language
+with it.**
 
 Writing with Duckdown
 ----------------------
@@ -45,18 +47,18 @@ token, and closing a given string with the same token.
 	
 	"When I asked her ~why~ she'd done it, she replied '*Just because.*'"
 
-Duckdown is quite strict in what it considers valid. You may not wrap a text style 
-over multiple lines. Opening tokens which aren't given breathing room (they 
-directly abut a word or non-significant token) will be ignored. Closing tokens 
-which do not directly abut the string of text they close will be ignored.
-Text-level tags which are not closed are considered invalid. Mismatched nesting is 
-also considered invalid.
+Duckdown is quite strict in what it considers valid. You may not wrap a text
+style over multiple lines. Opening tokens which aren't given breathing room
+(they directly abut a word or non-significant token) will be ignored. Closing
+tokens which do not directly abut the string of text they close will be ignored. 
+Text-level tags which are not closed are considered invalid. Mismatched nesting
+is also considered invalid.
 
 ### Headings
 *[Semantic Level:](#a-word-on-text-and-block-level-semantics) textblock*
 
-Headings in Duckdown are described in only one way - by a tag at the beginning of 
-the line, like so:
+Headings in Duckdown are described in only one way - by a tag at the beginning
+of the line, like so:
 
 	h1. This is heading 1
 	
@@ -78,8 +80,9 @@ relationships. Links are left plain, and simply included in text like so:
 
 	http://www.example.com/
 	
-Of course, often it won't make much sense to include a URL in the middle of a 
-sentence! In that circumstance you can use parentheses to add a link description:
+Of course, often it won't make much sense to include a URL in the middle of a
+sentence! In that circumstance you can use parentheses to add a link
+description:
 
 	You can purchase http://example.com/barbeques/fourburner (four burner barbeques) at the Acme BBQ store.
 
@@ -90,13 +93,13 @@ It is possible to include any inline text styles in the link text.
 ### Horizontal Rules
 *[Semantic Level:](#a-word-on-text-and-block-level-semantics) block*
 
-Horizontal rules can be embedded in any block element. Simply connect three dashes 
-(`---`) on a separate line, like so:
+Horizontal rules can be embedded in any block element. Simply connect three
+dashes (`---`) on a separate line, like so:
 
 	---
 
-You may use the horizontal rule syntax in blockquotes and lists (among other block 
-elements.)
+You may use the horizontal rule syntax in blockquotes and lists (among other
+block elements.)
 
 ### Lists
 *[Semantic Level:](#a-word-on-text-and-block-level-semantics) textblock*
@@ -112,9 +115,9 @@ Simply begin a line with an asterisk (and then some whitespace) like so:
 	* Potatoes.
 
 You must give the list some breathing room - it either has to be the first thing 
-in the document, a direct child (and the first element) of a block level item like 
-another list or blockquote, or be preceded by a blank line. The following is 
-valid, and will be rendered as an unordered list:
+in the document, a direct child (and the first element) of a block level item
+like another list or blockquote, or be preceded by a blank line. The following
+is valid, and will be rendered as an unordered list:
 
 	Here's a preceding paragraph. This is followed by a blank line.
 	
@@ -145,9 +148,9 @@ Lists may be nested by indenting them - either by a single tab or four spaces.
 
 ##### Numbered/Ordered Lists
 
-Unlike ordered lists in Markdown, Duckdown supports flexible list tokens designed 
-to make the raw Duckdown much easier to read. It also explicitly supports three 
-different list types:
+Unlike ordered lists in Markdown, Duckdown supports flexible list tokens
+designed to make the raw Duckdown much easier to read. It also explicitly
+supports three different list types:
 
 * Numeric - the default display style for a regular ordered list.
 * Lower, roman - lowercase roman numerals
@@ -194,7 +197,8 @@ inside any other block element or list - just as you would an ordered list.
 
 *[Semantic Level:](#a-word-on-text-and-block-level-semantics) block*
 
-Duckdown supports blockquotes as multiple concurrent lines prepended with a caret '>'.
+Duckdown supports blockquotes as multiple concurrent lines prepended with a
+caret '>'.
 
 	This text is outside the blockquote.
 	
@@ -207,8 +211,8 @@ Duckdown supports blockquotes as multiple concurrent lines prepended with a care
 	
 	This text is outside the blockquote.
 
-You may add attribution to the blockquote by appending a citation on the following 
-like like so:
+You may add attribution to the blockquote by appending a citation on the
+following like like so:
 
 	> The march of science and technology does not imply growing
 	> intellectual complexity in the lives of most people.
@@ -235,16 +239,17 @@ You may also nest blockquotes:
 
 *[Semantic Level:](#a-word-on-text-and-block-level-semantics) block*
 
-Preformatted text works in exactly the same way as Markdown: indent each line of a 
-preformatted block with either a single tab or four spaces. In the example below, 
-consider `\t` equal to one tab character.
+Preformatted text works in exactly the same way as Markdown: indent each line of 
+a preformatted block with either a single tab or four spaces. In the example
+below, consider `\t` equal to one tab character.
 
 	\tHere's a block of preformatted text.
 	\tHere's another line. No further processing occurrs in this region.
 
 ### Feathers
 
-*[Semantic Level:](#a-word-on-text-and-block-level-semantics) hybrid (may be overridden by feather function)*
+*[Semantic Level:](#a-word-on-text-and-block-level-semantics) hybrid (may be
+overridden by feather function)*
 
 One of the key considerations leading to the development of Duckdown (as opposed 
 to using Markdown) was extensibility. We needed a way to incorporate extra 
@@ -259,8 +264,8 @@ Some examples of this functionality might be:
 * Inline video
 * Image galleries and other embedded multimedia
 
-Because a lot of this content is also site or application specific, it didn't make 
-sense to include it in the Duckdown core either.
+Because a lot of this content is also site or application specific, it didn't
+make sense to include it in the Duckdown core either.
 
 Instead, I created a method of calling external JavaScript procedures from 
 Duckdown itself, (in keeping with the Duck theme) named *Feathers.*
@@ -269,10 +274,10 @@ Feathers look similar to an HTML tag, with a different parameter syntax:
 
 	<feathername param:value paramtwo:value>
 	
-In this case, we've already registered a handler with Duckdown, with the name 
-`feathername`. Duckdown chops up the parameters, and passes them to the feather 
-function as a big object (containing strings.) In this case, such an object would 
-look like the following:
+In this case, we've already registered a handler with Duckdown, with the name
+`feathername`. Duckdown chops up the parameters, and passes them to the feather
+function as a big object (containing strings.) In this case, such an object
+would look like the following:
 
 	{
 		"param": "value",
@@ -280,16 +285,16 @@ look like the following:
 	}
 	
 It's totally up to the function defined as to how it handles the parameters. The 
-content of the feather node is replaced with whatever it returns immediately upon 
-execution - although asynchronous code in the handler can retain a reference to 
-the node in question and act on it (mutate it in any way it wants!) before 
-compilation.
+content of the feather node is replaced with whatever it returns immediately
+upon execution - although asynchronous code in the handler can retain a
+reference to the node in question and act on it (mutate it in any way it wants!) 
+before compilation.
 
 (The exact way in which feathers work is detailed further down the page.)
 
-The parameters may have spaces in the values, but not in the names. The parameter 
-values need not be quoted, but the closing caret (`>`) character must be escaped 
-or avoided.
+The parameters may have spaces in the values, but not in the names. The
+parameter values need not be quoted, but the closing caret (`>`) character must
+be escaped or avoided.
 
 An example of real-word feather use could include embedding a video in the page:
 
@@ -312,14 +317,16 @@ appropriate HTML embed code for the video.
 
 Duckdown inherits an HTML-like understanding of block/text semantics.
 
-Each token/language construct has a semantic class associated with it. These are:
+Each token/language construct has a semantic class associated with it. These 
+are:
 
 * text
 * textblock
 * hybrid
 * block
 
-This concept, like in HTML, defines reasonable defaults around nesting behaviour:
+This concept, like in HTML, defines reasonable defaults around nesting 
+behaviour:
 
 * A block level element is permitted to nest only within other blocks, 
   and hybrid elements. It can contain any other element, regardless of text
@@ -343,8 +350,8 @@ Duckdown works with the regular JavaScript string methods, and is bound by the
 restrictions of the VM it runs in (in nearly all cases, this means Duckdown will 
 output UCS-2 in a way that is functionally indistinguishable from UTF-8.)
 
-Any character which does not fit into the first 128 printable ASCII characters, or 
-is not permitted in XML will be escaped as XML/HTML hexadecimal entities.
+Any character which does not fit into the first 128 printable ASCII characters,
+or is not permitted in XML will be escaped as XML/HTML hexadecimal entities.
 
 Using Duckdown
 ==============
@@ -359,8 +366,8 @@ globally will permit you to easily use Duckdown's CLI tool.
 
 	npm install -g duckdown
 	
-If you plan on running the tests or building Duckdown yourself, you should install
-the development dependencies:
+If you plan on running the tests or building Duckdown yourself, you should
+install the development dependencies:
 
 	npm install -g --dev duckdown
 	
@@ -401,18 +408,18 @@ Options:
 	*<br />Verbose output - returns extra data in the log, as well as detailled
 	attributes for AST nodes when outputting the AST.*
 * **`-s`, `--surpress`**
-	<br />*Surpress compiled output - in circumstances where you're just 
-	interested, for example, in the tokens, log, or AST, you can surpress display 
-	of the compiled HTML.*
+	<br />*Surpress compiled output - in circumstances where you're just
+	interested, for example, in the tokens, log, or AST, you can surpress
+	display of the compiled HTML.*
 * **`-e`, `--echo`**
 	*<br />Include raw duckdown in output*
 * **`-b`, `--build`**
-	*<br />Builds a combined JS file representing the Duckdown source, intended 
-	for use in the browser, in both minified and unminified forms. Development 
-	dependencies are required in order to use this option.
-	You may specify a filename to write to - which will be considered the name of 
-	the 'minified' version. The unminified version will have '-unminified' 
-	appended to the name.*
+	*<br />Builds a combined JS file representing the Duckdown source, intended
+	for use in the browser, in both minified and unminified forms. Development
+	dependencies are required in order to use this option. You may specify a
+	filename to write to - which will be considered the name of the 'minified'
+	version. The unminified version will have '-unminified' appended to the
+	name.*
 
 Example usage:
 	
@@ -426,13 +433,13 @@ Example usage:
 Using the Duckdown API
 ----------------------
 
-Fundamentally, the Duckdown API is very simple. Depending on whether you're using 
-it with node or in the browser, the method of instantiation will be different - 
-but the subsequent use is the same across platforms.
+Fundamentally, the Duckdown API is very simple. Depending on whether you're 
+using it with node or in the browser, the method of instantiation will be 
+different - but the subsequent use is the same across platforms.
 
 Basically, you'll want to create a new instance of the Duckdown parser. In node,
 you'll need to require it. In the browser, just include the compiled version of
-Duckdown ([you can find the latest build at Github.](https://raw.github.com/cgiffard/Duckdown/master/compiled/duckdown.js))
+Duckdown ([you can find the latest build at Github](https://raw.github.com/cgiffard/Duckdown/master/compiled/duckdown.js), or you can [build it yourself](#building-and-testing-duckdown).)
 
 	// Instantiating Duckdown in Node
 	var Duckdown = require("duckdown"),
@@ -448,7 +455,8 @@ compilation can be as simple as one call:
 	
 There's a catch though - in order to enable streaming, the parser retains any
 input it receives, so subsequent compilations will include the Duckdown of the
-calls before them. You'll need to clear the parser object before compiling again:
+calls before them. You'll need to clear the parser object before compiling 
+again:
 
 	duckdown.clear();
 	var myNewCompiledHTML = duckdown.compile(someOtherDocument);
@@ -460,21 +468,78 @@ How Duckdown works
 
 Still here? OK - Here's a little more about what this does.
 
-The above method hides a lot of complexity. Behind the scenes, a number of major functions are called:
+The above method hides a lot of complexity. Behind the scenes, a number of major 
+functions are called, shown here in roughly sequential order:
 
-* **Duckdown.tokenise**<br />
+* **[Duckdown.tokenise](#tokenisation)**<br />
 	Turns the raw text into tokens dictated by the grammar
-* **Duckdown.parse**<br />
+* **[Duckdown.parse](#parsing-process)**<br />
 	Parses the tokens into an intermediary AST
-	* **Duckdown.parseToken**<br />
-		Called by the Duckdown parser, this function is responsible for the brunt 
-		of the work. It parses an individual token according to state stored in 
-		the Duckdown parser object itself.
+	* **[Duckdown.parseToken](#token-parsing)**<br />
+		Called by the Duckdown parser, this function is responsible for the 
+		brunt of the work. It parses an individual token according to state 
+		stored in the Duckdown parser object itself.
 	* **Duckdown.completeParse**<br />
-		Finalises a parse operation (Technically speaking, it restores pointers to the AST root, closing any open nodes.)
-* **Duckdown.compile**<br />
+		Finalises a parse operation (Technically speaking, it restores pointers
+		to the AST root, closing any open nodes.)
+* **[Duckdown.compile](#compilation)**<br />
 	Actually compiles the sourcecode. Recursively loops through the AST,
 	and calls out to compilation handlers defined by the grammar where required.
+
+### Tokenisation
+
+The first stage in any parsing process is to extract a list of meaningful tokens 
+from the input text.
+
+The duckdown tokenising function is `Duckdown.tokenise()`.
+
+Duckdown uses a two-condition process. It splits the input stream based on 
+matches with tokens in the grammar, but also at the boundries of word and non-
+word characters. Duckdown emphasises longer, more specific matches over more
+generic ones.
+
+It advances through the text one character at a time, and takes a section of 
+characters between the current pointer and an index determined by the longest
+token in the grammar.
+
+It then checks the substring against each item in the grammar. If a match is 
+found, it saves the result as a token, and advances the stream pointer to the 
+one character after the end of the match.
+
+If a match isn't found, the length of the substring is decreased by one
+character, and is compared to the grammar again. This repeats until either a 
+match is found, or the length of the string reaches just one character.
+
+If the substring is only one character long and no grammar match has been found,
+the character is classified according to whether it is a 'word' or 'non-word'
+character. 'Runs' of word and non-word characters are buffered and each run is
+converted into a token when the tokeniser state changes, or completes.
+
+### Parsing process
+
+The parsing process is initiated by `Duckdown.parse()`.
+
+It loops through each of the tokens made available by the tokenising stage, and
+runs `Duckdown.parseToken()` (*see [Token Parsing](#token-parsing) below*) on
+each of them in order to build an AST for the document/stream.
+
+Once each token in the stream is parsed, it executes `Duckdown.completeParse`,
+which ties up any loose ends, and restores any pointers that it had to nodes
+deep in the parser AST to point to the root of the AST itself.
+
+This means that input parsed later cannot mutate nodes already in the Duckdown
+AST. If you need to leave the parser state as is, so you can add additional
+content to the document later (for example, you're cumulatively processing a
+stream,) - you can pass a `leaveHanging` attribute to `Duckdown.parse()`:
+
+	// Duckdown.parse(input,leaveHanging);
+	duckdown.parse(null,true);
+
+
+
+#### Token Parsing
+
+### Compilation
 
 ### Events
 
@@ -504,6 +569,9 @@ State stack
 Node invalidation!
 
 Node processing and self-destruction
+
+Building and Testing Duckdown
+-----------------------------
 
 
 Writing a Duckdown Grammar

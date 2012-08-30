@@ -10,7 +10,7 @@ Duckdown has a difference though - it doesn't work through naive regex hacks:
 It's a proper recursive descendant parser/state machine with a customisable
 grammar!
 
-**[Try Duckdown live, in your browser!](http://cgiffard.github.com/Duckdown/)
+**[Try Duckdown live, in your browser!](http://cgiffard.github.com/Duckdown/)**
 
 **You can use it as is, extend it, or build your very own text markup language
 with it.**

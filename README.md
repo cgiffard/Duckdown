@@ -15,14 +15,14 @@ with it.**
 
 ### Contents
 
-* **[Writing With Markdown](#writing-with-markdown)**
+* **[Writing With Duckdown](#writing-with-duckdown)**
 	* [Bold, Italic, Underline, and Strikethrough](#bold-italic-underline-and-strikethrough)
 	* [Headings](#headings)
 	* [Links](#links)
 	* [Horizontal Rules](#horizontal-rules)
 	* [Lists](#lists)
-		* [Bulletted / Unordered Lists](#bulletted-unordered-lists)
-		* [Numbered/Ordered Lists](#numbered-ordered-lists)
+		* [Bulletted / Unordered Lists](#bulletted--unordered-lists)
+		* [Numbered / Ordered Lists](#numbered--ordered-lists)
 	* [Blockquotes](#blockquotes)
 	* [Preformatted Text](#preformatted-text)
 	* [Feathers](#feathers)
@@ -41,7 +41,7 @@ with it.**
 		* [Events](#events)
 	* [Building and Testing Duckdown](#building-and-testing-duckdown)
 	* [Writing a Duckdown Grammar](#writing-a-duckdown-grammar)
-* **[Licence & Credits](#licence-credits)**
+* **[Licence & Credits](#licence--credits)**
 
 Writing with Duckdown
 ----------------------
@@ -176,7 +176,7 @@ Lists may be nested by indenting them - either by a single tab or four spaces.
 		* Both this line and the next will be rendered as second-level list items.
 			* Here's a third-level item!
 
-##### Numbered/Ordered Lists
+##### Numbered / Ordered Lists
 
 Unlike ordered lists in Markdown, Duckdown supports flexible list tokens
 designed to make the raw Duckdown much easier to read. It also explicitly

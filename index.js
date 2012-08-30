@@ -556,6 +556,7 @@
 	
 	// Compile from Duckdown intermediate format to the destination text format.
 	Duckdown.prototype.compile = function(input) {
+		var self = this;
 		
 		// We're getting input this late in the game?
 		// Well, we can deal with it, I guess.
@@ -594,7 +595,7 @@
 						var stateGenus = Grammar.stateList[currentNode.state];
 						
 						if (stateGenus && stateGenus.compile && stateGenus.compile instanceof Function) {
-							returnBuffer += stateGenus.compile(currentNode,duckpile);
+							returnBuffer += stateGenus.compile.call(self,currentNode,duckpile);
 						} else {
 							returnBuffer += duckpile(currentNode);
 						}

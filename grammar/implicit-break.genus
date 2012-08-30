@@ -1,0 +1,82 @@
+// Core Duckdown Genus for line breaks
+
+var Extension = {};
+
+Extension.process = function(node) {
+	// If we've got no text content, self destruct!
+	if (!node.text().length) return false;
+};
+
+
+Extension.compile = function(node,compiler) {
+	
+	// Compile children.
+	var buffer = compiler(node);
+
+	// If node contains a single child with block, textblock, or hybrid
+	// semantics, or an implicit_indent object...
+	var compileWithWrapper = !node.blockParent;
+
+	if (compileWithWrapper) {
+
+		var openParagraph = false, closeParagraph = false;
+
+		// If we don't have a previous sibling (meaning we're the first
+		// node or AST child)
+		// - OR -
+		// our previous sibling was an implicit break and was culled (meaning
+		// there was a double line break prior to us) then we need to open a
+		// paragraph.
+		
+		if (!node.previousSibling ||
+			(node.prevSiblingCulled &&
+				node.prevCulledSiblingState === "IMPLICIT_BREAK")) {
+			
+			openParagraph = true;
+		}
+
+		// If we don't have a next-sibling
+		// (meaning we're the last node or AST child)
+		// - OR -
+		// our next sibling was an implicit break and was culled
+		// (meaning there's a double line-break after us)
+		// then we need to close our paragraph.
+		if (!node.nextSibling ||
+			(node.nextSiblingCulled &&
+				node.nextCulledSiblingState === "IMPLICIT_BREAK")) {
+			
+			closeParagraph = true;
+		}
+
+		// Alternately, if the next sibling is a block parent of another variety
+		// That is - it contains a block level element like a list item,
+		// blockquote, etc. - 
+		// Or, it has no children, meaning it'll be culled.
+		if (node.nextSibling &&
+			(node.nextSibling.blockParent ||
+				!node.nextSibling.children.length)) {
+			
+			closeParagraph = true;
+		}
+
+		// Don't want to append a space to the buffer if it finishes with
+		// one already.
+		var finalSpace = buffer.match(/\s+$/i) ? "" : " ";
+
+		if (openParagraph) buffer = "<p>" + buffer;
+		buffer += closeParagraph ? "</p>\n" : finalSpace;
+
+		return buffer;
+	} else {
+		return buffer + "\n";
+	}
+};
+
+
+
+var IMPLICIT_BREAK =
+	new GrammarGenus.extend("\n","IMPLICIT_BREAK","hybrid",ext);
+
+IMPLICIT_BREAK.swallowTokens = false;
+
+module.exports = IMPLICIT_BREAK;

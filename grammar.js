@@ -1,4 +1,12 @@
 // Duckdown Grammar Definitions
+
+/*
+
+NOTE: This grammar format is going away - to be rearchitected into roughly what
+you see in the /grammar folder.
+
+*/
+
 /*globals require:true module:true define:true console:true */
 
 (function(glob) {

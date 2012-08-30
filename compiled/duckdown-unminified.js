@@ -3,7 +3,7 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Fri Aug 24 2012 16:03:59 GMT+1000 (EST)
+// Package built Thu Aug 30 2012 17:06:05 GMT+1000 (EST)
 // 
 
 
@@ -762,8 +762,29 @@ function require(input) {
 					}
 					
 					if (newNodeParent) {
-						node.rootBlock.previousSibling.blockNode.children.push(node);
-						node.rootBlock.remove();
+						// We wanna keep our implicit break around. So we invert the tree! Nuts!
+						// Before: IMPLICIT_BREAK -> BLOCKQUOTE -> CHILDREN
+						// After:  BLOCKQUOTE -> IMPLICIT_BREAK -> CHILDREN
+						// Then we add the blockquote to the tree of our previous node.
+						
+						// Save for future reference.
+						var root = node.rootBlock, previousSibling = root.previousSibling;
+						
+						// Remove this node from the tree.
+						root.remove();
+						
+						// Dump our children directly into the root node
+						root.children = node.children;
+						
+						// Now add the implicit break as a child of our node.
+						node.children = [root];
+						
+						
+						previousSibling.blockNode.children.push(node);
+						
+						// console.log(node);
+						
+						
 					}
 					
 					
@@ -1470,7 +1491,7 @@ function require(input) {
 			this.tokenBuffer = "";
 		}
 		
-		this.emit("tokeniseend");
+		this.emit("tokeniseend",this.tokens);
 		
 		return this.tokens;
 	};
@@ -1834,6 +1855,7 @@ function require(input) {
 	
 	// Compile from Duckdown intermediate format to the destination text format.
 	Duckdown.prototype.compile = function(input) {
+		var self = this;
 		
 		// We're getting input this late in the game?
 		// Well, we can deal with it, I guess.
@@ -1872,7 +1894,7 @@ function require(input) {
 						var stateGenus = Grammar.stateList[currentNode.state];
 						
 						if (stateGenus && stateGenus.compile && stateGenus.compile instanceof Function) {
-							returnBuffer += stateGenus.compile(currentNode,duckpile);
+							returnBuffer += stateGenus.compile.call(self,currentNode,duckpile);
 						} else {
 							returnBuffer += duckpile(currentNode);
 						}

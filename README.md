@@ -13,6 +13,36 @@ grammar!
 **You can use it as is, extend it, or build your very own text markup language
 with it.**
 
+### Contents
+
+* **[Writing With Markdown](#writing-with-markdown)**
+	* [Bold, Italic, Underline, and Strikethrough](#bold-italic-underline-and-strikethrough)
+	* [Headings](#headings)
+	* [Links](#links)
+	* [Horizontal Rules](#horizontal-rules)
+	* [Lists](#lists)
+		* [Bulletted / Unordered Lists](#bulletted-unordered-lists)
+		* [Numbered/Ordered Lists](#numbered-ordered-lists)
+	* [Blockquotes](#blockquotes)
+	* [Preformatted Text](#preformatted-text)
+	* [Feathers](#feathers)
+	* [A word on text and block-level semantics](#a-word-on-text-and-block-level-semantics)
+	* [A word on encoding](#a-word-on-encoding)
+* **[Using Duckdown](#using-duckdown)**
+	* [Installing](#installing)
+	* [CLI](#cli)
+	* [Using the Duckdown API](#using-the-duckdown-api)
+		* [Using Feathers](#using-feathers)
+	* [How Duckdown works](#how-duckdown-works)
+		* [Tokenisation](#tokenisation)
+		* [Parsing process](#parsing-process)
+			* [Token Parsing](#token-parsing)
+		* [Compilation](#compilation)
+		* [Events](#events)
+	* [Building and Testing Duckdown](#building-and-testing-duckdown)
+	* [Writing a Duckdown Grammar](#writing-a-duckdown-grammar)
+* **[Licence & Credits](#licence-credits)**
+
 Writing with Duckdown
 ----------------------
 
@@ -360,7 +390,7 @@ Using Duckdown
 Duckdown may be run on the server or in the browser. Let's start with node.
 
 Installing
---------------
+----------
 
 If you're using `npm`, you may install Duckdown locally or globally. Installing
 globally will permit you to easily use Duckdown's CLI tool.
@@ -729,7 +759,7 @@ understandable, and maintainable.
 When this process is complete, the new architecture will be documented. Sorry!
 
 Licence & Credits
-------------------
+=================
 
 **Who's responsible for this monstrosity!?**
 

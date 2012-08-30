@@ -75,7 +75,7 @@ Extension.compile = function(node,compiler) {
 
 
 var IMPLICIT_BREAK =
-	new GrammarGenus.extend("\n","IMPLICIT_BREAK","hybrid",ext);
+	new GrammarGenus.extend("\n","IMPLICIT_BREAK","hybrid",Extension);
 
 IMPLICIT_BREAK.swallowTokens = false;
 

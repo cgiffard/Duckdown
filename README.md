@@ -470,7 +470,8 @@ different - but the subsequent use is the same across platforms.
 
 Basically, you'll want to create a new instance of the Duckdown parser. In node,
 you'll need to require it. In the browser, just include the compiled version of
-Duckdown ([you can find the latest build at Github](https://raw.github.com/cgiffard/Duckdown/master/compiled/duckdown.js), or you can [build it yourself](#building-and-testing-duckdown).)
+Duckdown ([you can find the latest build at Github](https://raw.github.com/cgiffard/Duckdown/master/compiled/duckdown.js),
+or you can [build it yourself](#building-and-testing-duckdown).)
 
 	// Instantiating Duckdown in Node
 	var Duckdown = require("duckdown"),

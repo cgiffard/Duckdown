@@ -3,7 +3,7 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Fri Aug 24 2012 09:08:20 GMT+1000 (EST)
+// Package built Thu Aug 30 2012 17:06:05 GMT+1000 (EST)
 // 
 
 
@@ -165,6 +165,7 @@ function require(input) {
 			"wrapper"			: false,
 			"semanticLevel"		: "text",
 			"exit"				: /["\n]/,
+			"validIf"			: /^\".*\"$/,
 			"state"				: "TEXT_QUOTE"
 		},
 		// Bulletted list item...
@@ -203,6 +204,7 @@ function require(input) {
 			"exit"				: /\n/i,
 			"state"				: "BLOCKQUOTE",
 			"semanticLevel"		: "block",
+			"allowSelfNesting"	: "true",
 			"swallowTokens"		: false,
 			"mustBeFirstChild"	: true
 		},
@@ -319,24 +321,11 @@ function require(input) {
 		"IMPLICIT_BREAK": {
 			"process": function(node) {
 				// If we've got no text content, self destruct!
-				if (!node.text().length) return false;
-				
-				// Check to see whether we contain an alternate block or hybrid level element.
-				// If so, mark as such for future processing!
-				node.blockParent = false;
+				if (!node.text().length && !node.blockParent) return false;
 				
 				// This is a flat scan. A deep scan would be silly. (famous last words?)
 				for (var childIndex = 0; childIndex < node.children.length; childIndex ++) {
-					if (node.children[childIndex] instanceof Object &&
-						node.children[childIndex].semanticLevel !== "hybrid" && 
-						node.children[childIndex].semanticLevel !== "text") {
-						
-						node.blockParent = true;
-						break;
-					
-					// And we don't compile a wrapper around implicit indents either.
-					} else if (node.children[childIndex].state === "IMPLICIT_INDENT") {
-						
+					if (node.children[childIndex].state === "IMPLICIT_INDENT") {
 						node.blockParent = true;
 						break;
 					}
@@ -360,7 +349,8 @@ function require(input) {
 					// If we don't have a previous sibling (meaning we're the first node or AST child) - OR -
 					// our previous sibling was an implicit break and was culled (meaning there was a double
 					// line break prior to us) then we need to open a paragraph.
-					if (!node.previousSibling || (node.prevSiblingCulled && node.prevCulledSiblingState === "IMPLICIT_BREAK")) {
+					if (!node.previousSibling || (node.prevSiblingCulled && node.prevCulledSiblingState === "IMPLICIT_BREAK") ||
+						node.previousSibling.blockParent) {
 						
 						openParagraph = true;
 					}
@@ -476,8 +466,6 @@ function require(input) {
 		},
 		"TEXT_QUOTE": {
 			"process": function(node) {
-				if (node.previousSibling) return -1;
-				
 				if (node.parent &&
 					!node.parent.prevSiblingCulled &&
 					node.parent.previousSibling &&
@@ -747,12 +735,58 @@ function require(input) {
 				if (node.previousSibling) return -1;
 				
 				// Get nesting depth
-				var nestDepth = 0, nodePointer = node;
-				while (nodePointer && nestDepth ++)
+				var nestDepth = 0, nodePointer = node, newNodeParent;
+				while (nodePointer) {
+					if (nodePointer.state === node.state) nestDepth ++;
 					nodePointer = nodePointer.parent;
+				}
 				
+				node.indentation = nestDepth;
 				
-				if (node.blockRoot) {
+				if (node.rootBlock &&
+					node.rootBlock.previousSibling &&
+					(!node.rootBlock.prevSiblingCulled || node.rootBlock.prevCulledSiblingState === node.state) &&
+					node.rootBlock.previousSibling.blockType === node.state &&
+					node.rootBlock.previousSibling.blockNode) {
+					
+					if (node.rootBlock.previousSibling.blockNode.indentation < node.indentation) {
+						
+					}
+					
+					nodePointer = node.rootBlock.previousSibling.blockNode;
+					while (nodePointer && !newNodeParent) {
+						if (nodePointer.indentation < node.indentation)
+							newNodeParent = nodePointer;
+						
+						nodePointer = nodePointer.parent;
+					}
+					
+					if (newNodeParent) {
+						// We wanna keep our implicit break around. So we invert the tree! Nuts!
+						// Before: IMPLICIT_BREAK -> BLOCKQUOTE -> CHILDREN
+						// After:  BLOCKQUOTE -> IMPLICIT_BREAK -> CHILDREN
+						// Then we add the blockquote to the tree of our previous node.
+						
+						// Save for future reference.
+						var root = node.rootBlock, previousSibling = root.previousSibling;
+						
+						// Remove this node from the tree.
+						root.remove();
+						
+						// Dump our children directly into the root node
+						root.children = node.children;
+						
+						// Now add the implicit break as a child of our node.
+						node.children = [root];
+						
+						
+						previousSibling.blockNode.children.push(node);
+						
+						// console.log(node);
+						
+						
+					}
+					
 					
 				}
 				
@@ -1457,7 +1491,7 @@ function require(input) {
 			this.tokenBuffer = "";
 		}
 		
-		this.emit("tokeniseend");
+		this.emit("tokeniseend",this.tokens);
 		
 		return this.tokens;
 	};
@@ -1741,7 +1775,10 @@ function require(input) {
 					tmpDuckNode.index = (state.currentNode ? state.currentNode.children.length : state.parserAST.length) -1;
 					
 					// Are we a block element? Mark our ancestors as a parents of a block level element, and store the block type.
-					if (tokenGenus.semanticLevel === "block" || tokenGenus.semanticLevel === "textblock") {
+					if (tokenGenus.semanticLevel === "block" ||
+						tokenGenus.semanticLevel === "textblock" ||
+						tokenGenus.state === "IMPLICIT_INDENT") {
+						
 						var tmpNodePointer = state.currentNode;
 						while(tmpNodePointer !== null) {
 							tmpNodePointer.blockParent = true;
@@ -1818,6 +1855,7 @@ function require(input) {
 	
 	// Compile from Duckdown intermediate format to the destination text format.
 	Duckdown.prototype.compile = function(input) {
+		var self = this;
 		
 		// We're getting input this late in the game?
 		// Well, we can deal with it, I guess.
@@ -1856,7 +1894,7 @@ function require(input) {
 						var stateGenus = Grammar.stateList[currentNode.state];
 						
 						if (stateGenus && stateGenus.compile && stateGenus.compile instanceof Function) {
-							returnBuffer += stateGenus.compile(currentNode,duckpile);
+							returnBuffer += stateGenus.compile.call(self,currentNode,duckpile);
 						} else {
 							returnBuffer += duckpile(currentNode);
 						}
@@ -1981,7 +2019,7 @@ function require(input) {
 				state.currentNode.culled = true;
 				// We record that we culled the node - and what its state was
 				state.prevNodeCulled = true;
-				state.prevCullState = state.currentNode.state;
+				state.prevCullState = state.currentNode.blockType || state.currentNode.state;
 				
 				// We also take this opportunity to tell this node's previous sibling that we culled (this one.)
 				if (state.currentNode.previousSibling) {

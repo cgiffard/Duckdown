@@ -4,23 +4,23 @@
 		<meta charset="utf8" />
 		<title>Duckdown in-browser test</title>
 		<style type="text/css">
-
+			
 			* {
 				-moz-box-sizing: border-box;
 				box-sizing: border-box;
 			}
-
+			
 			html {
 				height: 100%;
 			}
-
+			
 			body {
 				background-color: #FFE;
 				margin: 0px;
 				height: 100%;
 				font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
 			}
-
+			
 			[role=main] {
 				width: 802px;
 				border-left: solid #AA3 1px;
@@ -31,57 +31,57 @@
 				min-height: 100%;
 				overflow: hidden;
 			}
-
+			
 			textarea {
 				margin-bottom: 1em;
 			}
-
+			
 			.content {
 				padding: 1em;
 			}
-
+			
 			.book {
 				padding: 2em;
 				background-color: #EED;
 				border: solid #AA3 1px;
 				width: 100%;
 			}
-
+			
 			.code, pre {
 				font-family: Menlo, Consolas, Monaco, "Lucida Console", monospace;
 				font-size: 1em;
 			}
-
+			
 			pre {
 				padding: 1em;
 				border: solid #AA3 1px;
 				color: #660;
 			}
-
+			
 			.tab .book {
 				min-height: 500px;
 			}
-
+			
 			.tab + .tab {
 				display: none;
 			}
-
+			
 			.tab > h2 {
 				position: absolute;
 				color: transparent;
 				top: -10000px;
 			}
-
+			
 			.tab > pre {
 				margin-top: 0px;
 				word-break: break-word;
 			}
-
+			
 			.tabs {
 				overflow: hidden;
 				margin: 0px;
 			}
-
+			
 			.tabs > ul {
 				display: block;
 				padding: 0px;
@@ -89,14 +89,14 @@
 				border-bottom: solid #AA3 1px;
 				height: 2.1em;
 			}
-
+			
 			.tabs > ul li {
 				display: block;
 				margin: 0px;
 				padding: 0px;
 				float: left;
 			}
-
+			
 			.tabs > ul a { 
 				display: block;
 				padding-left: 1.129em;
@@ -105,20 +105,20 @@
 				padding-bottom: 0.5em;
 				line-height: 1em;
 				color: black;
-
+				
 				background-color: #FFE;
-
+				
 				text-decoration: none;
 				border: solid #AA3 1px;
 				border-bottom: none;
-
-
+				
+				
 				border-top-left-radius: 3px;
 				border-top-right-radius: 3px;
-
+				
 				margin-right: -1px;
 			}
-
+			
 			.tabs > ul a.active {
 				font-weight: bold;
 				background-color: #EED;
@@ -127,29 +127,29 @@
 				padding-left: 1em;
 				padding-right: 1em;
 			}
-
+			
 			li.duckdownNode summary {
 				font-weight: bold;
 				color: black;
 				cursor: pointer;
 			}
-
+			
 			.duckdownAST {
 				font-family: Menlo, Consolas, Monaco, "Lucida Console", monospace;
 				padding-left: 0px;
 				list-style-type: none;
 				color: #AA8;
 			}
-
+			
 			.duckdownAST ol {
 				list-style-type: none;
 				line-height: 2em;
 			}
-
+			
 			.duckdownAST li, .sibling {
 				color: #663;
 			}
-
+			
 			.duckdownAST ol {
 				padding-left: 1em;
 				margin-top: -0.7em;
@@ -159,35 +159,38 @@
 				border-left: solid #CCA 1px;
 				border-bottom-left-radius: 10px;
 			}
-
+			
 			.duckdownAST .textNode {
 				line-height: 1.4em;
 				font-size: 0.9em;
 			}
-
+			
 			details::before {
 				color: #CCA;
 			}
-
+			
 			details:focus, details summary:focus {
 				background-color: white;
 				outline: none !important;
 			}
-
+			
 			.status {
 				font-family: Menlo, Consolas, Monaco, "Lucida Console", monospace;
 				text-align: right;
 			}
-
+			
 		</style>
 	</head>
 	<body>
 		<section role="main">
 			<img src="logo.jpg" width="800" height="300" alt="Duckdown" />
 			<article class="content">
-				<h1>Duckdown in-browser test</h1>
-				<p><small><strong>NB:</strong> Check the Duckdown build status before reporting a problem: <a href="http://travis-ci.org/cgiffard/Duckdown"><img src="https://secure.travis-ci.org/cgiffard/Duckdown.png" alt="Duckdown build status"/></a></small></p>
-				<p>Write some duckdown in here:</p>
+				<h1>
+					Duckdown in-browser test
+					<a href="http://travis-ci.org/cgiffard/Duckdown"><img src="https://secure.travis-ci.org/cgiffard/Duckdown.png" alt="Duckdown build status"/></a>
+				</h1>
+				<p><small>See the <a href="http://www.github.com/cgiffard/Duckdown">Duckdown documentation over at Github</a></small></p>
+				<p>Write some Duckdown in here:</p>
 				<textarea rows="5" cols="80" id="duckdowninput" class="book code">*Bold Text* ~Emphasised Text~ -Struck through text- _underlined text_</textarea>
 				<p class="status">&nbsp;</p>
 				<section class="tabs">
@@ -219,120 +222,120 @@
 		<script type="text/javascript" src="duckdown-unminified.js"></script>
 		<script type="text/javascript">
 			var currentTab = "outputtab";
-
+			
 			// Make IE8 not die due to logging...
 			if (!window.console) {
 				window.console = {log:function() {}};
 			}
-
+			
 			// Wait til we've loaded...
 			window.addEventListener("load",function(eventData) {
-
+				
 				// Generate tab navigation...
 				var tabLinks = [].slice.call(document.querySelectorAll("section.tabs ul a"),0);
 				tabLinks.forEach(function(link) {
 					link.addEventListener("click",function(eventData) {
 						var tabLinkID = link.getAttribute("href").replace(/[^a-z0-9]/ig,"");
-
+						
 						currentTab = tabLinkID;
-
+						
 						if (currentTab === "asttab") generateAST(duckdownCompiler);
 						if (currentTab === "logtab") displayLog(duckdownLog);
-
+						
 						tabLinks.forEach(function(linkComparison) {
 							linkComparison.className = (linkComparison === link) ? "active" : "";
 						});
-
+						
 						[].slice.call(document.querySelectorAll("article.tab"),0).forEach(function(tab) {
 							tab.style.display = (tabLinkID === tab.id) ? "block" : "none";
 						});
-
+						
 						eventData.preventDefault();
 						eventData.cancelBubble = true;
-
+						
 						return false;
 					},false);
 				});
-
-
+				
+				
 				// Create our duckdown object
 				var duckdownCompiler = new Duckdown();
-
+				
 				// Log for Duckdown events
 				var duckdownLog = [];
-
+				
 				// Get the textarea we're dealing with...
 				var textarea = document.querySelector("textarea");
-
+				
 				// And the region we're supposed to output to
 				var outputArea = document.querySelector("div#duckdownoutput");
-
+				
 				// And the raw region...
 				var rawOutputArea = document.querySelector("pre#duckdownrawoutput");
-
+				
 				function compileDuckdown() {
 					console.log("Compiling duckdown...");
-
+					
 					// Clear duckdown log...
 					duckdownLog = [];
-
+					
 					var startTime = (new Date).getTime();
-
+					
 					// Get text
 					var rawDuckdown = textarea.value;
-
+					
 					// Clear duckdown object...
 					duckdownCompiler.clear();
-
+					
 					// Compile the duckdown!
 					var compiledDuckdown = duckdownCompiler.compile(rawDuckdown);
-
+					
 					// Output it!
 					outputArea.innerHTML = compiledDuckdown;
-
+					
 					// And escape for raw...
 					rawOutputArea.innerHTML = compiledDuckdown.replace(DuckdownGrammar.escapeCharacters,DuckdownGrammar.replacer);
-
+					
 					console.log("Compilation took %d ms.",(new Date).getTime()-startTime);
 					document.querySelector(".status").innerHTML = "Compilation took " + ((new Date).getTime()-startTime) + "ms.";
-
+					
 					if (currentTab === "asttab") generateAST(duckdownCompiler);
-
+					
 					if (currentTab === "logtab") displayLog(duckdownLog);
 				}
-
+				
 				function generateAST(compiler) {
 					var fragment = document.createDocumentFragment(),
 						currentWorkingNode = document.createElement("ol");
-
+					
 					currentWorkingNode.className = "duckdownAST"
-
+					
 					fragment.appendChild(currentWorkingNode);
-
+					
 					(function parseASTLevel(ast,cwn,depth) {
 						depth = depth || 0;
-
+						
 						ast.forEach(function(astChild,count) {
-
+							
 							if (astChild instanceof DuckdownNode) {
 								var previousSiblingInfo = "";
 								if (astChild.previousSibling) {
 									previousSiblingInfo = " ::";
-
+									
 									if (astChild.previousSibling.state) {
 										previousSiblingInfo += astChild.previousSibling.state;
 									} else {
 										previousSiblingInfo += "TEXT_NODE";
 									}
 								}
-
+								
 								var tmpChild = document.createElement("li"),
 									tmpOL = document.createElement("ol"),
 									tmpDetails = document.createElement("details"),
 									tmpSummary = document.createElement("summary"),
 									tmpText = document.createTextNode(astChild.toString()),
 									tmpSiblingInfo = document.createElement("span");
-
+								
 								tmpSiblingInfo.className = "sibling";
 								tmpSiblingInfo.innerHTML = previousSiblingInfo;
 								tmpChild.className = "duckdownNode";
@@ -341,39 +344,39 @@
 								tmpDetails.appendChild(tmpSummary);
 								tmpDetails.appendChild(tmpOL);
 								tmpChild.appendChild(tmpDetails);
-
+								
 								if (depth < 3) {
 									tmpDetails.setAttribute("open","open");
 								}
-
+								
 								parseASTLevel(astChild.children,tmpOL,depth+1);
-
+								
 								cwn.appendChild(tmpChild);
-
+								
 							} else {
 								var tmpChild = document.createElement("li"),
 									tmpText = document.createTextNode("\"" + astChild + "\"");
-
+								
 									tmpChild.className = "textNode";
 									tmpChild.appendChild(tmpText);
-
+									
 								cwn.appendChild(tmpChild);
 							}
-
+							
 						});
-
+						
 					})(compiler.parserAST,currentWorkingNode);
-
+					
 					// Clear current content and append AST
 					document.querySelector("#duckdownast").innerHTML = "";
 					document.querySelector("#duckdownast").appendChild(fragment);
 				}
-
+				
 				// Ensure we're listening to all the main events
 				textarea.addEventListener("keydown",compileDuckdown);
 				textarea.addEventListener("keyup",compileDuckdown);
 				textarea.addEventListener("change",compileDuckdown);
-
+				
 				// Now we start logging all the duckdown events to our internal store.
 				// Attach our events for generating a log...
 				[	"clear",
@@ -396,104 +399,104 @@
 							};
 						})(eventName))
 					});
-
+				
 				// And a function for receiving the events in question!
 				function duckLog(eventName) {
 					var args = [].slice.call(arguments,1), self = this;
-
+					
 					function log() {
 						var logTime = Date.now(),
 							startTime = logTime;
-
+						
 						if (duckdownLog.length) {
 							startTime = duckdownLog[0].time;
 						}
-
+						
 						duckdownLog.push({
 							"time": logTime,
 							"data": [].slice.call(arguments,0)
 						});
-
+						
 						//console.log.apply(console,["+" + (logTime-startTime) + "ms\t"].concat([].slice.call(arguments,0)));
 					}
-
+					
 					switch (eventName) {
-
+						
 						case "clear":
 							log("Duckdown object cleared; state reinitialised.");
 							break;
-
+						
 						case "tokenisestart":
 							log("Beginning tokenising procedure.");
 							break;
-
+						
 						case "tokeniseend":
 							log("Completed tokenising. " + self.tokens.length + " tokens found.");
 							break;
-
+						
 						case "parsestart":
 							log("Beginning parsing.");
 							break;
-
+						
 						case "parseend":
 							log("Completed parsing");
 							break;
-
+						
 						case "parsetoken":
 							log("Parsing token '" + args[0].replace(/\n/ig,"\\n") + "'");
 							log("State list: " + self.parserStates.join(","));
 							break;
-
+						
 						case "addstate":
 							log("Added the state " + args[0] + " to the state stack.");
 							log("State list: " + self.parserStates.join(","));
 							break;
-
+						
 						case "nodeclosed":
 							log("Node closed: " + args[0].state);
 							break;
-
+						
 						case "nodeselfdestruct":
 							log("Node self-destructed: " + args[0].state);
 							break;
-
+							
 						case "nodeinvalid":
 							log("Node was marked as invalid: " + args[0].raw());
 							break;
-
+						
 						case "compilestart":
 							log("Starting compilation.");
 							break;
-
+							
 						case "compileend":
 							log("Completed compilation with " + args[0].length + " single-byte-characters of compiled HTML.");
 							break;
 					}
 				}
-
+				
 				function displayLog(logObject) {
 					var logContainer = document.querySelector("#duckdownlog");
 						logContainer.innerHTML = "";
-
+					
 					var containerFragment = document.createDocumentFragment(),
 						logList = document.createElement("ol"),
 						startTime = 0;
-
+					
 					if (logObject.length) {
 						startTime = logObject[0].time;
 					}
-
+					
 					logObject.forEach(function(logItem) {
 						var logItemContainer = document.createElement("li");
 							logItemContainer.innerHTML = "<strong class='time'>+" + (logItem.time - startTime) + "ms</strong> " + String(logItem.data);
-
+						
 						containerFragment.appendChild(logItemContainer);
 					});
-
+					
 					logList.appendChild(containerFragment);
 					logContainer.appendChild(logList);
 				}
-
+				
 				// And  kick off our first compile!
 				compileDuckdown();
 			},false);

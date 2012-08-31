@@ -520,7 +520,7 @@
 		} else {
 			
 			// Push to parse buffer (if there's anything in the current token at all!)
-			if (state.currentToken.length) {
+			if (state.currentToken && state.currentToken.length) {
 				state.parseBuffer.push(state.currentToken);
 			}
 			

@@ -541,7 +541,7 @@
 		}
 		
 		// Store whether the previous token was whitespace...
-		if (state.currentToken.match(/\s+$/)) {
+		if (state.currentToken && state.currentToken.match(/\s+$/)) {
 			state.whitespace = true;
 		} else {
 			state.whitespace = false;

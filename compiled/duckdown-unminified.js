@@ -3,7 +3,7 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Thu Aug 30 2012 17:06:05 GMT+1000 (EST)
+// Package built Fri Aug 31 2012 15:15:40 GMT+1000 (EST)
 // 
 
 
@@ -22,6 +22,14 @@ function require(input) {
 
 
 // Duckdown Grammar Definitions
+
+/*
+
+NOTE: This grammar format is going away - to be rearchitected into roughly what
+you see in the /grammar folder.
+
+*/
+
 /*globals require:true module:true define:true console:true */
 
 (function(glob) {
@@ -1819,7 +1827,7 @@ function require(input) {
 		} else {
 			
 			// Push to parse buffer (if there's anything in the current token at all!)
-			if (state.currentToken.length) {
+			if (state.currentToken && state.currentToken.length) {
 				state.parseBuffer.push(state.currentToken);
 			}
 			
@@ -1840,7 +1848,7 @@ function require(input) {
 		}
 		
 		// Store whether the previous token was whitespace...
-		if (state.currentToken.match(/\s+$/)) {
+		if (state.currentToken && state.currentToken.match(/\s+$/)) {
 			state.whitespace = true;
 		} else {
 			state.whitespace = false;

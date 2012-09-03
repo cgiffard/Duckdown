@@ -8,7 +8,7 @@ describe("Core code",function() {
 		fs = require("fs");
 	
 	it("should pass JSHint with no errors",function() {
-		var coreCode = fs.readFileSync("index.js").toString();
+		var coreCode = fs.readFileSync(__dirname + "/../lib/duckdown.js").toString();
 		
 		JSHINT(coreCode);
 		JSHINT.errors.should.have.length(0);
@@ -20,7 +20,7 @@ describe("Grammar definitions",function() {
 		fs = require("fs");
 
 	it("should pass JSHint with no errors",function() {
-		var coreCode = fs.readFileSync("grammar.js").toString();
+		var coreCode = fs.readFileSync(__dirname + "/../lib/grammar.js").toString();
 
 		JSHINT(coreCode);
 		JSHINT.errors.should.have.length(0);
@@ -32,7 +32,7 @@ describe("Duckdown Node class",function() {
 		fs = require("fs");
 
 	it("should pass JSHint with no errors",function() {
-		var coreCode = fs.readFileSync("ducknode.js").toString();
+		var coreCode = fs.readFileSync(__dirname + "/../lib/ducknode.js").toString();
 
 		JSHINT(coreCode);
 		JSHINT.errors.should.have.length(0);
@@ -44,7 +44,7 @@ describe("CLI code",function() {
 		fs = require("fs");
 
 	it("should pass JSHint with no errors",function() {
-		var coreCode = fs.readFileSync("cli.js").toString();
+		var coreCode = fs.readFileSync(__dirname + "/../lib/cli.js").toString();
 
 		JSHINT(coreCode);
 		JSHINT.errors.should.have.length(0);

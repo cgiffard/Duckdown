@@ -1,3 +1,5 @@
+(function(glob) {
+
 // Core Duckdown Genus for line breaks
 
 var Extension = {};
@@ -72,11 +74,11 @@ Extension.compile = function(node,compiler) {
 	}
 };
 
-
+var GrammarGenus = require("grammar-template.js");
 
 var IMPLICIT_BREAK =
 	new GrammarGenus.extend("\n","IMPLICIT_BREAK","hybrid",Extension);
 
 IMPLICIT_BREAK.swallowTokens = false;
 
-module.exports = IMPLICIT_BREAK;
+if (module) module.exports = IMPLICIT_BREAK;

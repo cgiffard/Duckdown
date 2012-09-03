@@ -3,7 +3,8 @@
 function require(input) {
 	return window[({
 		"./ducknode.js":	"DuckdownNode",
-		"./index.js":		"Duckdown",
-		"./grammar.js":		"DuckdownGrammar"
+		"./duckdown.js":	"Duckdown",
+		"./grammar.js":		"DuckdownGrammar",
+		"../grammar":		"DuckdownGrammar"
 	})[input]];
 }

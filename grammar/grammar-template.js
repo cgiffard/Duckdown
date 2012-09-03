@@ -215,7 +215,18 @@ GrammarGenus.prototype.extend = function(token,state,semanticLevel,extension) {
 	
 };
 
-// Little function for flat-cloning an object.
+/*
+	Private: Little function for flat-cloning an object (to avoid the
+	pass-by-ref hell we'd otherwise find ourselves in.)
+	
+	We retain references to children, (those which aren't primitives) but the
+	object is now unique.
+
+	token			- the object to clone.
+
+	Returns a a new object with the properties and methods of the old one.
+
+*/
 function cloneObject(source) {
 	var destination = {};
 	

@@ -8,16 +8,16 @@
     "type": "git",
     "url": "git://github.com/cgiffard/Duckdown.git"
   },
-  "main": "index.js",
+  "main": "./lib/duckdown.js",
   "scripts": {
     "test": "mocha -R spec",
-    "build": "build.js"
+    "build": "./builder/build.js"
   },
   "engines": {
     "node": ">= 0.6.x < 0.9.0"
   },
   "bin": {
-    "duck": "./cli.js"
+    "duck": "./lib/cli.js"
   },
   "dependencies": {
     "commander": "~1.0.0"
@@ -29,9 +29,9 @@
     "chai": "~1.2.0"
   },
   "buildFiles": [
-    "grammar.js",
-    "ducknode.js",
-    "index.js"
+    "lib/grammar.js",
+    "lib/ducknode.js",
+    "lib/duckdown.js"
   ],
   "optionalDependencies": {},
   "public": false,

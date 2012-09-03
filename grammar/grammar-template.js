@@ -4,6 +4,8 @@
 //
 // (Termed a 'genus' because multiple Duckdown Nodes can be of this 'genus', and 
 // it was catchier and less ambiguous than 'kind'!)
+//
+// !exports:GrammarGenus
 
 /*
 	Public: Core grammar object, to be extended for each grammar construct.
@@ -20,7 +22,6 @@
 
 */
 function GrammarGenus(token,state,semanticLevel) {
-	
 	// Define our core identity - our state,
 	// tokens we respond to, and our text-level semantics.
 	
@@ -192,7 +193,10 @@ GrammarGenus.prototype.extend = function(token,state,semanticLevel,extension) {
 	if (typeof extension !== "object")
 		throw Error("You must use an object in order to extend the genus.");
 	
-	var newGrammar = new GrammarGenus(token,state,semanticLevel)
+	var newGrammar = new GrammarGenus(token,state,semanticLevel);
+	
+	// Save prototype back in;
+	//newGrammar.prototype = new GrammarGenus(token,state,semanticLevel);
 	
 	for (var key in extension) {
 		if (extension.hasOwnProperty(key) &&
@@ -213,6 +217,7 @@ GrammarGenus.prototype.extend = function(token,state,semanticLevel,extension) {
 		}
 	}
 	
+	return newGrammar;
 };
 
 /*
@@ -239,4 +244,4 @@ function cloneObject(source) {
 	return destination;
 }
 
-module.exports = GrammarGenus;
+if (module) module.exports = GrammarGenus;

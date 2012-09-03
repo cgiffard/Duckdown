@@ -28,14 +28,18 @@
     "uglify-js": "~1.3.3",
     "chai": "~1.2.0"
   },
-  "buildFiles": [
-    "lib/grammar.js",
-    "lib/ducknode.js",
-    "lib/duckdown.js"
-  ],
   "optionalDependencies": {},
   "public": false,
   "keywords": [
-    "markdown", "language", "text", "duck", "duckdown", "ast", "compiler", "tokeniser", "feather", "feathers"
+    "markdown",
+    "language",
+    "text",
+    "duck",
+    "duckdown",
+    "ast",
+    "compiler",
+    "tokeniser",
+    "feather",
+    "feathers"
   ]
 }

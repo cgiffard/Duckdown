@@ -25,9 +25,9 @@ function GrammarGenus(token,state,semanticLevel) {
 	// Define our core identity - our state,
 	// tokens we respond to, and our text-level semantics.
 	
-	this.state				= "VOID_ELEMENT";
+	this.state				= state || "VOID_ELEMENT";
 	this.token				= token || null;
-	this.semanticLevel		= "text";
+	this.semanticLevel		= semanticLevel || "text";
 	
 	// ---
 	// Now we define some properties for giding matching and other behaviour.
@@ -188,22 +188,25 @@ GrammarGenus.prototype.compile = function(node,compiler) {
 	Returns an extended class representing the new token genus.
 
 */
-GrammarGenus.prototype.extend = function(token,state,semanticLevel,extension) {
+GrammarGenus.prototype.extend = function(extension) {
 	
 	if (typeof extension !== "object")
 		throw Error("You must use an object in order to extend the genus.");
 	
-	var newGrammar = new GrammarGenus(token,state,semanticLevel);
+	var newGrammar = new GrammarGenus(
+							extension.token,
+							extension.state,
+							extension.semanticLevel);
 	
 	// Save prototype back in;
 	//newGrammar.prototype = new GrammarGenus(token,state,semanticLevel);
 	
 	for (var key in extension) {
 		if (extension.hasOwnProperty(key) &&
-			key in GrammarGenus &&
+			key in GrammarGenus.prototype &&
 			GrammarGenus.prototype[key] instanceof Function) {
 			
-			newGrammar.prototype[key] = function() {
+			newGrammar[key] = function() {
 				var context = cloneObject(this),
 					args = [].slice.call(arguments,0);
 				

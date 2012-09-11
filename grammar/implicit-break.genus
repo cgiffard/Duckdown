@@ -1,15 +1,20 @@
 // Core Duckdown Genus for line breaks
 // !exports:IMPLICIT_BREAK
 
-var Extension = {};
+var IMPLICIT_BREAK = {};
 
-Extension.process = function(node) {
+IMPLICIT_BREAK.state = "IMPLICIT_BREAK";
+IMPLICIT_BREAK.token = "\n";
+IMPLICIT_BREAK.semanticLevel = "hybrid";
+IMPLICIT_BREAK.swallowTokens = false;
+
+IMPLICIT_BREAK.process = function(node) {
 	// If we've got no text content, self destruct!
 	if (!node.text().length) return false;
 };
 
 
-Extension.compile = function(node,compiler) {
+IMPLICIT_BREAK.compile = function(node,compiler) {
 	
 	// Compile children.
 	var buffer = compiler(node);
@@ -72,12 +77,5 @@ Extension.compile = function(node,compiler) {
 		return buffer + "\n";
 	}
 };
-
-var GrammarGenus = new (require("./grammar-template.js"))();
-
-var IMPLICIT_BREAK =
-	new GrammarGenus.extend("\n","IMPLICIT_BREAK","hybrid",Extension);
-
-IMPLICIT_BREAK.swallowTokens = false;
 
 if (module) module.exports = IMPLICIT_BREAK;

@@ -3,7 +3,7 @@
 // Christopher Giffard 2012
 // 
 // 
-// Package built Fri Aug 31 2012 15:15:40 GMT+1000 (EST)
+// Package built Tue Sep 11 2012 15:09:22 GMT+1000 (EST)
 // 
 
 
@@ -13,8 +13,9 @@
 function require(input) {
 	return window[({
 		"./ducknode.js":	"DuckdownNode",
-		"./index.js":		"Duckdown",
-		"./grammar.js":		"DuckdownGrammar"
+		"./duckdown.js":	"Duckdown",
+		"./grammar.js":		"DuckdownGrammar",
+		"../grammar":		"DuckdownGrammar"
 	})[input]];
 }
 
@@ -1539,7 +1540,8 @@ you see in the /grammar folder.
 	};
 	
 	Duckdown.prototype.parseToken = function(state, input) {
-		var currentState, newState, tokenGenus, stateGenus, tree;
+		var currentState, newState, tokenGenus, stateGenus, tree,
+			closedNodeStates = [], closedNodeState;
 		
 		if (this instanceof Duckdown) state = this;
 		
@@ -1693,11 +1695,17 @@ you see in the /grammar folder.
 					// We'll leave it up to the state genus can determine what to do if
 					// it's mismatched - we're not going to be presumptuous!
 					state.currentNode.mismatched = true;
-					state.closeCurrentNode(true);
+					closedNodeState = state.closeCurrentNode(true);
+					
+					if (closedNodeState && closedNodeState.length)
+						closedNodeStates = closedNodeStates.concat(closedNodeState);
 				}
 				
 				// And now close the actual node we're supposed to be listening for...
-				state.closeCurrentNode();
+				closedNodeState = state.closeCurrentNode();
+				
+				if (closedNodeState && closedNodeState.length)
+					closedNodeStates = closedNodeStates.concat(closedNodeState);
 			}
 		}
 		
@@ -1858,7 +1866,7 @@ you see in the /grammar folder.
 		state.previousToken = state.currentToken;
 		
 		// Return parser states for this token as a css-compatible class string.
-		return state.parserStates.join(" ").toLowerCase().replace(/\_/ig,"-");
+		return state.parserStates.concat(closedNodeStates).join(" ").toLowerCase().replace(/\_/ig,"-");
 	};
 	
 	// Compile from Duckdown intermediate format to the destination text format.
@@ -1959,7 +1967,8 @@ you see in the /grammar folder.
 	// Function for closing nodes...
 	Duckdown.prototype.closeCurrentNode = function(parentNodeClosed) {
 		var currentState = this.parserStates[this.parserStates.length-1],
-			stateGenus = Grammar.stateList[currentState];
+			stateGenus = Grammar.stateList[currentState],
+			closedStateList = [];
 		
 		var state = this, tmpTokenGenus = {}, tree = null;
 		
@@ -2097,7 +2106,8 @@ you see in the /grammar folder.
 		state.nodeDepth --;
 		
 		// Truncate parser state stack...
-		state.parserStates.length = state.nodeDepth;
+		if (state.nodeDepth < state.parserStates.length)
+			closedStateList = state.parserStates.splice(state.nodeDepth - state.parserStates.length);
 		
 		// Finally, do we swallow any token components that match?
 		// Check the state genus and act accordingly. If we destroy the token components, 
@@ -2129,6 +2139,8 @@ you see in the /grammar folder.
 				state.currentToken = state.currentToken.substring(matchPoint);
 			}
 		}
+		
+		return closedStateList;
 	};
 	
 	// Helper function to do a reverse-lookup to find token info from a state name.

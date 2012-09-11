@@ -1,0 +1,62 @@
+// Core Duckdown Genus for indentation
+// !exports:IMPLICIT_INDENT
+
+var IMPLICIT_INDENT = {};
+
+IMPLICIT_INDENT.state = "IMPLICIT_INDENT";
+IMPLICIT_INDENT.token = "\t";
+IMPLICIT_INDENT.semanticLevel = "hybrid";
+IMPLICIT_INDENT.swallowTokens = false;
+IMPLICIT_INDENT.allowSelfNesting = true;
+
+IMPLICIT_INDENT.process = function(node) {
+	// If we've got no text content, self destruct!
+	if (!node.text().length) return false;
+};
+	
+// Compile conditional on contents...
+IMPLICIT_INDENT.compile = function(node,compiler) {
+	
+	// If we're the direct child of an implicit break,
+	// hybrid, or block level element, and we're not part
+	// of a larger paragraph, then we compile as preformatted text.
+	// otherwise, just compile our children and return...
+	
+	// List of states which will prevent us from compiling preformatted...
+	
+	var compilePreformatted = false;
+	
+	// If we don't have a parent element (not sure how that would happen...)
+	// Or we have a previous sibling...
+	// If we are the direct child of an implicit break
+	// or a block or hybrid element...
+	if (!node.parent							||
+		node.previousSibling					||
+		node.parent.state === "IMPLICIT_BREAK"	||
+		node.parent.semanticLevel === "block"	||
+		node.parent.semanticLevel === "hybrid"	) {
+		
+		// If we don't have a parent, somehow
+		if (!node.parent) {
+			compilePreformatted = true;
+		
+		// If we don't have a prior sibling,
+		// we're not part of a larger paragraph!
+	} else if (!node.parent.previousSibling && !node.previousSibling && node.parent.state !== "IMPLICIT_INDENT") {
+			compilePreformatted = true;
+		
+		// Or there was a double-line-break and the previous sibling was culled
+		} else if (node.parent.prevSiblingCulled && node.parent.prevCulledSiblingState === "IMPLICIT_BREAK") {
+			compilePreformatted = true;
+		}
+	}
+	
+	if (compilePreformatted) {
+		// TODO grouped preformatted text.
+		return "<pre>" + node.raw(true).replace(/^\s+/,"") + "</pre>\n";
+	} else {
+		return compiler(node);
+	}
+};
+
+if (module) module.exports = IMPLICIT_INDENT;
